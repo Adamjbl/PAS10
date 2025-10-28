@@ -45,6 +45,30 @@ export default function WaitingRoom() {
     };
   }, []);
 
+  // Écouter les événements de jeu pour naviguer automatiquement
+  useEffect(() => {
+    console.log('🎮 [WaitingRoom] Setting up game listeners');
+
+    const handleGameCreated = (data: any) => {
+      console.log('🎮 [WaitingRoom] Game created, navigating to game page', data);
+      navigate(`/game/${code}`);
+    };
+
+    const handleGameStarted = (data: any) => {
+      console.log('🎮 [WaitingRoom] Game started, navigating to game page', data);
+      navigate(`/game/${code}`);
+    };
+
+    socketService.on('game:created', handleGameCreated);
+    socketService.on('game:started', handleGameStarted);
+
+    return () => {
+      console.log('🎮 [WaitingRoom] Cleaning up game listeners');
+      socketService.off('game:created', handleGameCreated);
+      socketService.off('game:started', handleGameStarted);
+    };
+  }, [code, navigate]);
+
   const handleLeave = () => {
     console.log('👋 [WaitingRoom] handleLeave called');
     leaveRoom();
@@ -63,8 +87,8 @@ export default function WaitingRoom() {
   const handleStartGame = () => {
     console.log('🎮 [WaitingRoom] handleStartGame called', { code });
     // Démarrer le jeu via Socket.io
+    // La navigation se fera automatiquement quand on recevra game:created ou game:started
     socketService.emit('game:create', { roomCode: code });
-    navigate(`/game/${code}`);
   };
 
   if (!currentRoom) {

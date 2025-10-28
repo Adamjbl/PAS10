@@ -90,24 +90,40 @@ export const useRoom = (roomCode?: string) => {
           return prev;
         }
 
-        // Deep copy pour éviter de muter le state
+        // Vérifier si le joueur existe déjà
         const existingPlayer = prev.players.find((p: any) => p.userId === data.player.userId);
 
         if (existingPlayer) {
-          // Le joueur existe déjà, ne rien faire
           console.log('⏭️  [handlePlayerJoined] Player already exists, skipping');
           return prev;
         }
 
-        // Créer un nouveau joueur et retourner un nouvel objet room
+        // Créer un NOUVEAU joueur avec TOUTES les propriétés
+        const newPlayer = {
+          userId: data.player.userId,
+          username: data.player.username,  // IMPORTANT: Copier le username!
+          email: data.player.email,
+          socketId: data.player.socketId,
+          status: 'connected' as const,
+          joinedAt: new Date() as any
+        };
+
+        // Créer un nouvel array de joueurs
+        const newPlayers = [...prev.players, newPlayer];
+
+        // Créer un nouvel objet room avec COPIE EXPLICITE de toutes les propriétés
         const newRoom = {
-          ...prev,
-          players: [...prev.players, {
-            userId: data.player.userId,
-            socketId: data.player.socketId,
-            status: 'connected',
-            joinedAt: new Date() as any
-          }]
+          _id: prev._id,
+          code: prev.code,
+          host: prev.host,
+          players: newPlayers,
+          gameType: prev.gameType,
+          status: prev.status,
+          maxPlayers: prev.maxPlayers,
+          isPrivate: prev.isPrivate,
+          settings: prev.settings,
+          createdAt: prev.createdAt,
+          playerCount: prev.playerCount
         };
 
         console.log('✅ [handlePlayerJoined] newRoom:', newRoom);

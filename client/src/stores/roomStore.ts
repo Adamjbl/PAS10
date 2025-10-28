@@ -57,12 +57,19 @@ export const useRoomStore = create<RoomState>((set) => ({
   },
 
   setCurrentRoom: (room) => {
-    console.log('🏪 [RoomStore] setCurrentRoom called', {
-      hasRoom: !!room,
-      roomCode: room?.code,
-      playersCount: room?.players?.length
+    set((state) => {
+      // Si room est une fonction, l'appeler avec l'état actuel
+      const newRoom = typeof room === 'function' ? room(state.currentRoom) : room;
+
+      console.log('🏪 [RoomStore] setCurrentRoom called', {
+        hasRoom: !!newRoom,
+        roomCode: newRoom?.code,
+        playersCount: newRoom?.players?.length,
+        wasFunction: typeof room === 'function'
+      });
+
+      return { currentRoom: newRoom };
     });
-    set({ currentRoom: room });
   },
 
   addRoom: (room) => {

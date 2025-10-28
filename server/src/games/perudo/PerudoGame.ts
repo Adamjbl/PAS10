@@ -32,7 +32,7 @@ export class PerudoGame extends BaseGame {
     }
 
     // Définir le premier joueur
-    this._state.currentTurn = this._state.players[0].userId;
+    this.setCurrentTurn(this._state.players[0].userId);
 
     // Commencer le premier round
     this.startNewRound();
@@ -68,21 +68,37 @@ export class PerudoGame extends BaseGame {
   }
 
   validateMove(move: GameMove): boolean {
+    console.log('🎲 [PerudoGame] validateMove:', {
+      movePlayerId: move.playerId,
+      currentTurn: this._state.currentTurn,
+      isCorrectPlayer: move.playerId === this._state.currentTurn,
+      moveType: move.type,
+      moveData: move.data
+    });
+
     // Vérifier que c'est le tour du joueur
     if (move.playerId !== this._state.currentTurn) {
+      console.log('❌ [PerudoGame] Ce n\'est pas le tour de ce joueur!');
       return false;
     }
 
+    let isValid = false;
     switch (move.type) {
       case 'bid':
-        return this.validateBid(move.data);
+        isValid = this.validateBid(move.data);
+        break;
       case 'challenge':
-        return this.currentBid !== null;
+        isValid = this.currentBid !== null;
+        break;
       case 'exact':
-        return this.currentBid !== null;
+        isValid = this.currentBid !== null;
+        break;
       default:
-        return false;
+        isValid = false;
     }
+
+    console.log('🎲 [PerudoGame] Move validation result:', isValid);
+    return isValid;
   }
 
   private validateBid(bid: { quantity: number; dieValue: number }): boolean {
@@ -131,11 +147,23 @@ export class PerudoGame extends BaseGame {
   private processBid(move: GameMove): boolean {
     const bid = move.data as { quantity: number; dieValue: number };
 
+    console.log('🎲 [PerudoGame] processBid:', {
+      playerId: move.playerId,
+      bid,
+      previousTurn: this._state.currentTurn
+    });
+
     this.currentBid = bid;
 
     // Passer au joueur suivant
     const nextPlayer = this.getNextPlayer();
-    this._state.currentTurn = nextPlayer || undefined;
+    if (nextPlayer) {
+      this.setCurrentTurn(nextPlayer); // Utiliser setCurrentTurn pour émettre turn_changed
+    }
+
+    console.log('🎲 [PerudoGame] Après bid, nouveau tour:', {
+      nextPlayer: this._state.currentTurn
+    });
 
     this.emit('bid_made', {
       playerId: move.playerId,
@@ -183,7 +211,7 @@ export class PerudoGame extends BaseGame {
     });
 
     // Commencer un nouveau round
-    this._state.currentTurn = loserId;
+    this.setCurrentTurn(loserId);
     this.startNewRound();
 
     return true;
@@ -224,7 +252,7 @@ export class PerudoGame extends BaseGame {
     });
 
     // Commencer un nouveau round
-    this._state.currentTurn = move.playerId;
+    this.setCurrentTurn(move.playerId);
     this.startNewRound();
 
     return true;

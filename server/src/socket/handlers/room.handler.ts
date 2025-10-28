@@ -54,7 +54,46 @@ export const setupRoomHandlers = (io: Server, socket: AuthSocket) => {
       }
 
       // Vérifier si le joueur est déjà dans le salon
-      const existingPlayer = room.players.find(p => p.userId.toString() === socket.userId);
+      console.log('🔍 [room.handler] Checking for existing player...', {
+        socketUserId: socket.userId,
+        playersUserIds: room.players.map(p => ({
+          userId: p.userId,
+          userIdType: typeof p.userId,
+          userIdString: p.userId.toString(),
+          socketId: p.socketId
+        }))
+      });
+
+      const existingPlayer = room.players.find(p => {
+        // Extraire l'ID en fonction du type (objet Mongoose ou string)
+        let userIdString: string;
+        if (typeof p.userId === 'object' && p.userId !== null) {
+          // Si c'est un objet Mongoose peuplé, extraire _id
+          const userIdObj: any = p.userId;
+          // Extraire l'_id du document Mongoose
+          if (userIdObj._id) {
+            userIdString = String(userIdObj._id);
+          } else if (userIdObj.id) {
+            userIdString = String(userIdObj.id);
+          } else {
+            // Si c'est un ObjectId pur, le convertir en string
+            userIdString = String(userIdObj);
+          }
+        } else {
+          // Sinon c'est déjà un ObjectId ou string
+          userIdString = String(p.userId);
+        }
+
+        console.log('🔍 [room.handler] Comparing:', {
+          playerUserId: userIdString,
+          socketUserId: socket.userId,
+          match: userIdString === socket.userId
+        });
+
+        return userIdString === socket.userId;
+      });
+
+      console.log('🔍 [room.handler] Existing player found?', !!existingPlayer);
 
       if (existingPlayer) {
         console.log('🔄 [room.handler] Player reconnecting');

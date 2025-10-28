@@ -7,6 +7,7 @@ class SocketService {
   private maxReconnectAttempts = 5;
   private joinedRooms: Set<string> = new Set(); // Track les salons déjà joints
   private pendingJoins: Set<string> = new Set(); // Track les joins en cours
+  private pendingListeners: Array<{ event: string; callback: (...args: any[]) => void }> = []; // Listeners en attente
 
   /**
    * Connecter au serveur Socket.io
@@ -17,10 +18,17 @@ class SocketService {
       isConnected: this.socket?.connected
     });
 
-    // Ne pas reconnecter si déjà connecté
-    if (this.socket && this.socket.connected) {
-      console.log('✅ [SocketService] Socket.io déjà connecté, skipping');
-      return;
+    // IMPORTANT: Ne JAMAIS déconnecter un socket existant!
+    // Cela détruit tous les listeners enregistrés!
+    if (this.socket) {
+      if (this.socket.connected) {
+        console.log('✅ [SocketService] Socket.io déjà connecté, skipping');
+        return;
+      } else {
+        console.log('🔌 [SocketService] Socket exists but not connected, reconnecting...');
+        this.socket.connect();
+        return;
+      }
     }
 
     const { token } = useAuthStore.getState();
@@ -31,12 +39,6 @@ class SocketService {
     }
 
     console.log('🔑 [SocketService] Token found, length:', token.length);
-
-    // Déconnecter l'ancien socket s'il existe
-    if (this.socket) {
-      console.log('🔌 [SocketService] Disconnecting old socket');
-      this.socket.disconnect();
-    }
 
     const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
     console.log('🌐 [SocketService] Server URL:', serverUrl);
@@ -62,6 +64,15 @@ class SocketService {
    */
   private setupEventListeners() {
     if (!this.socket) return;
+
+    // Enregistrer tous les listeners en attente
+    console.log('🔧 [SocketService] Registering', this.pendingListeners.length, 'pending listeners');
+    for (const { event, callback } of this.pendingListeners) {
+      console.log('✅ [SocketService] Registering pending listener for:', event);
+      this.socket.on(event, callback);
+    }
+    // Vider la queue
+    this.pendingListeners = [];
 
     this.socket.on('connect', () => {
       console.log('✅ Socket.io connecté:', this.socket?.id);
@@ -195,18 +206,13 @@ class SocketService {
   on(event: string, callback: (...args: any[]) => void) {
     console.log('👂 [SocketService] Registering listener for event:', event);
     if (!this.socket) {
-      console.warn('⚠️  [SocketService] Socket not initialized yet, listener will be registered on connect');
-      // Attendre que le socket soit initialisé
-      const checkInterval = setInterval(() => {
-        if (this.socket) {
-          console.log('✅ [SocketService] Socket now ready, registering listener for:', event);
-          clearInterval(checkInterval);
-          this.socket.on(event, callback);
-        }
-      }, 50);
+      console.warn('⚠️  [SocketService] Socket not initialized yet, adding to pending queue');
+      // Ajouter à la queue des listeners en attente
+      this.pendingListeners.push({ event, callback });
       return;
     }
 
+    console.log('✅ [SocketService] Socket ready, registering listener immediately for:', event);
     this.socket.on(event, callback);
   }
 

@@ -115,8 +115,10 @@ export class GameManager {
 
     await game.start();
 
-    // Notifier tous les joueurs du salon
+    // Envoyer l'état personnalisé à chaque joueur (avec leurs dés)
     if (this.io) {
+      this.sendPersonalizedState(roomCode, game);
+      // Envoyer aussi l'événement game:started
       this.io.to(roomCode).emit('game:started', {
         state: game.getPublicState()
       });
@@ -304,14 +306,19 @@ export class GameManager {
    */
   private setupGameListeners(game: BaseGame, roomCode: string): void {
     // Écouter les événements du jeu et les transmettre via Socket.io
-    game.on('move', (data) => {
+    game.on('move', () => {
       if (this.io) {
-        this.io.to(roomCode).emit('game:update', data);
+        // Envoyer un état personnalisé à chaque joueur avec ses dés
+        this.sendPersonalizedState(roomCode, game);
       }
     });
 
     game.on('turn_changed', (data) => {
       if (this.io) {
+        console.log('🎯 [GameManager] turn_changed event, sending to room:', roomCode, 'playerId:', data.playerId);
+        // Envoyer un état personnalisé à chaque joueur
+        this.sendPersonalizedState(roomCode, game);
+        // Envoyer aussi l'événement turn_changed pour la notification
         this.io.to(roomCode).emit('game:turn_changed', data);
       }
     });
@@ -328,6 +335,26 @@ export class GameManager {
 
       if (this.io) {
         this.io.to(roomCode).emit('game:ended', data);
+      }
+    });
+  }
+
+  /**
+   * Envoyer un état personnalisé à chaque joueur (avec ses dés privés)
+   */
+  private sendPersonalizedState(roomCode: string, game: BaseGame): void {
+    if (!this.io) return;
+
+    // Obtenir tous les sockets dans cette room
+    const room = this.io.sockets.adapter.rooms.get(roomCode);
+    if (!room) return;
+
+    // Pour chaque socket dans la room, envoyer un état personnalisé
+    room.forEach((socketId) => {
+      const socket = this.io!.sockets.sockets.get(socketId) as any;
+      if (socket && socket.userId) {
+        const personalState = game.getPublicState(socket.userId);
+        socket.emit('game:update', { state: personalState });
       }
     });
   }

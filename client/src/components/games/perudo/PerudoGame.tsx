@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGame } from '../../../hooks/useGame';
 import { useAuthStore } from '../../../stores/authStore';
 import toast from 'react-hot-toast';
@@ -12,13 +12,63 @@ export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
   const { user } = useAuthStore();
   const { makeBid, challenge, callExact } = useGame(gameState.roomCode);
 
-  const [bidQuantity, setBidQuantity] = useState(1);
+  const currentBid = gameState.currentBid;
+  const totalDice = gameState.totalDiceCount || 0;
+
+  // Calculer la quantité minimale pour une enchère valide
+  const getMinQuantity = () => {
+    if (!currentBid) return 1;
+    return currentBid.quantity;
+  };
+
+  const getMinDieValue = (quantity: number) => {
+    if (!currentBid) return 1;
+    if (quantity > currentBid.quantity) return 1;
+    if (quantity === currentBid.quantity) return currentBid.dieValue + 1;
+    return 1;
+  };
+
+  const [bidQuantity, setBidQuantity] = useState(getMinQuantity());
   const [bidDieValue, setBidDieValue] = useState(2);
 
+  // Mettre à jour les valeurs minimales quand l'enchère change
+  useEffect(() => {
+    const minQty = getMinQuantity();
+    const minDie = getMinDieValue(bidQuantity);
+
+    if (bidQuantity < minQty) {
+      setBidQuantity(minQty);
+    }
+    if (bidDieValue < minDie) {
+      setBidDieValue(Math.max(minDie, 2));
+    }
+  }, [currentBid]);
+
   const handleBid = () => {
+    console.log('🎲 [PerudoGame] handleBid:', {
+      myPlayerId,
+      currentTurn: gameState.currentTurn,
+      isMyTurn,
+      bid: { quantity: bidQuantity, dieValue: bidDieValue },
+      currentBid,
+      myDice: gameState.myDice
+    });
+
     if (!isMyTurn) {
       toast.error('Ce n\'est pas votre tour!');
       return;
+    }
+
+    // Validation côté client
+    if (currentBid) {
+      if (bidQuantity < currentBid.quantity) {
+        toast.error('La quantité doit être égale ou supérieure à l\'enchère précédente');
+        return;
+      }
+      if (bidQuantity === currentBid.quantity && bidDieValue <= currentBid.dieValue) {
+        toast.error('La valeur du dé doit être supérieure pour la même quantité');
+        return;
+      }
     }
 
     makeBid(bidQuantity, bidDieValue);
@@ -146,32 +196,50 @@ export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
             {/* Faire une enchère */}
             <div className="bg-gray-50 p-4 rounded-lg">
               <h4 className="font-semibold mb-3">Faire une enchère:</h4>
-              <div className="flex gap-3 items-center justify-center">
+              <div className="flex gap-3 items-center justify-center flex-wrap">
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Quantité</label>
                   <input
                     type="number"
-                    min="1"
+                    min={getMinQuantity()}
+                    max={totalDice}
                     value={bidQuantity}
-                    onChange={(e) => setBidQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || getMinQuantity();
+                      const minQty = getMinQuantity();
+                      setBidQuantity(Math.max(minQty, Math.min(totalDice, val)));
+                    }}
                     className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center text-lg font-bold"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Min: {getMinQuantity()}</p>
                 </div>
                 <span className="text-2xl mt-6">×</span>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Valeur du dé</label>
                   <select
                     value={bidDieValue}
-                    onChange={(e) => setBidDieValue(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      const minDie = getMinDieValue(bidQuantity);
+                      if (val >= minDie) {
+                        setBidDieValue(val);
+                      }
+                    }}
                     className="px-3 py-2 border border-gray-300 rounded-lg text-lg font-bold"
                   >
-                    <option value={1}>1 (Paco)</option>
-                    <option value={2}>2</option>
-                    <option value={3}>3</option>
-                    <option value={4}>4</option>
-                    <option value={5}>5</option>
-                    <option value={6}>6</option>
+                    {[1, 2, 3, 4, 5, 6].map(val => {
+                      const minDie = getMinDieValue(bidQuantity);
+                      const isDisabled = val < minDie;
+                      return (
+                        <option key={val} value={val} disabled={isDisabled}>
+                          {val === 1 ? '1 (Paco)' : val} {isDisabled ? '✗' : ''}
+                        </option>
+                      );
+                    })}
                   </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {bidQuantity === currentBid?.quantity ? `Min: ${getMinDieValue(bidQuantity)}` : 'Toutes valeurs'}
+                  </p>
                 </div>
                 <button
                   onClick={handleBid}

@@ -70,6 +70,15 @@ export const setupGameHandlers = (io: Server, socket: AuthSocket) => {
     try {
       const { roomCode, move } = data;
 
+      console.log('🎮 [game:move] Mouvement reçu:', {
+        roomCode,
+        moveType: move.type,
+        socketId: socket.id,
+        socketUserId: socket.userId,
+        socketUsername: socket.user?.username,
+        moveData: move.data
+      });
+
       // Vérifier que le jeu existe
       const game = gameManager.getGame(roomCode.toUpperCase());
       if (!game) {
@@ -85,12 +94,20 @@ export const setupGameHandlers = (io: Server, socket: AuthSocket) => {
         timestamp: new Date()
       };
 
+      console.log('🎮 [game:move] gameMove créé:', {
+        playerId: gameMove.playerId,
+        type: gameMove.type,
+        data: gameMove.data
+      });
+
       // Traiter le mouvement
       const success = await gameManager.processMove(
         roomCode.toUpperCase(),
         socket.userId!,
         gameMove
       );
+
+      console.log('🎮 [game:move] Résultat:', { success });
 
       if (!success) {
         socket.emit('game:move_rejected', {

@@ -47,6 +47,15 @@ export const useGame = (roomCode: string) => {
   const sendMove = useCallback(async (type: string, data: any) => {
     if (!roomCode || !gameState) return;
 
+    const userId = socketService.getUserId();
+    console.log('🎮 [useGame] sendMove:', {
+      roomCode,
+      type,
+      data,
+      myUserId: userId,
+      currentTurn: gameState?.currentTurn
+    });
+
     socketService.emit('game:move', {
       roomCode,
       move: { type, data }
@@ -129,6 +138,11 @@ export const useGame = (roomCode: string) => {
     };
 
     const handleGameUpdate = (data: { state: GameState }) => {
+      console.log('🎮 [useGame] game:update received:', {
+        hasMyDice: !!(data.state as any).myDice,
+        myDice: (data.state as any).myDice,
+        currentTurn: data.state.currentTurn
+      });
       setGameState(data.state);
     };
 
@@ -140,6 +154,11 @@ export const useGame = (roomCode: string) => {
       setGameState(data.state);
       // Vérifier si c'est notre tour
       const userId = socketService.getUserId();
+      console.log('🎮 [useGame] handleTurnChanged:', {
+        turnPlayerId: data.playerId,
+        myUserId: userId,
+        isMyTurn: userId && data.playerId === userId
+      });
       if (userId && data.playerId === userId) {
         setIsMyTurn(true);
         toast('C\'est votre tour!', { icon: '🎲' });
