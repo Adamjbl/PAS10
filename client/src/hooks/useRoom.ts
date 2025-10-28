@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { socketService } from '../services/socket';
 import { useRoomStore } from '../stores/roomStore';
 import toast from 'react-hot-toast';
@@ -8,6 +8,9 @@ import toast from 'react-hot-toast';
  */
 export const useRoom = (roomCode?: string) => {
   const { currentRoom, setCurrentRoom } = useRoomStore();
+  const hasJoinedRoom = useRef(false);
+  const lastJoinedRoom = useRef<string | null>(null);
+  const listenersSetup = useRef(false);
 
   /**
    * Rejoindre un salon
@@ -45,11 +48,25 @@ export const useRoom = (roomCode?: string) => {
 
   /**
    * Setup des listeners d'événements Socket.io
+   * IMPORTANT: Ne pas mettre de dépendances qui changent, sinon les listeners
+   * sont recréés et peuvent manquer des événements
+   * CRITIQUE: Les listeners doivent être en place AVANT de rejoindre un salon
    */
   useEffect(() => {
+    console.log('🎧 [useRoom] Setting up socket listeners', { listenersSetup: listenersSetup.current });
+
+    // Ne setup les listeners qu'une seule fois
+    if (listenersSetup.current) {
+      console.log('⏭️  [useRoom] Listeners already setup, skipping');
+      return;
+    }
+
+    console.log('✅ [useRoom] Setting up listeners for the first time');
+    listenersSetup.current = true;
+
     // Événement: salon rejoint avec succès
     const handleRoomJoined = (data: { room: any }) => {
-      console.log('✅ Salon rejoint:', data.room);
+      console.log('✅ [useRoom] room:joined event received:', data.room);
       setCurrentRoom(data.room);
       toast.success(`Salon ${data.room.code} rejoint!`);
     };
@@ -60,49 +77,76 @@ export const useRoom = (roomCode?: string) => {
       toast.success(`${data.player.username} a rejoint le salon`);
 
       // Mettre à jour la liste des joueurs
-      if (currentRoom) {
-        const updatedRoom = { ...currentRoom };
-        const existingPlayer = updatedRoom.players.find((p: any) => p.userId === data.player.userId);
+      setCurrentRoom((prev) => {
+        console.log('🔍 [handlePlayerJoined] prev state:', prev);
 
-        if (!existingPlayer) {
-          updatedRoom.players.push({
+        if (!prev) {
+          console.warn('⚠️ [handlePlayerJoined] prev is null/undefined');
+          return prev;
+        }
+
+        if (!prev.players) {
+          console.error('❌ [handlePlayerJoined] prev.players is undefined!', prev);
+          return prev;
+        }
+
+        // Deep copy pour éviter de muter le state
+        const existingPlayer = prev.players.find((p: any) => p.userId === data.player.userId);
+
+        if (existingPlayer) {
+          // Le joueur existe déjà, ne rien faire
+          console.log('⏭️  [handlePlayerJoined] Player already exists, skipping');
+          return prev;
+        }
+
+        // Créer un nouveau joueur et retourner un nouvel objet room
+        const newRoom = {
+          ...prev,
+          players: [...prev.players, {
             userId: data.player.userId,
             socketId: data.player.socketId,
             status: 'connected',
-            joinedAt: new Date().toISOString()
-          });
-          setCurrentRoom(updatedRoom);
-        }
-      }
+            joinedAt: new Date() as any
+          }]
+        };
+
+        console.log('✅ [handlePlayerJoined] newRoom:', newRoom);
+        return newRoom;
+      });
     };
 
     // Événement: un joueur a quitté le salon
     const handlePlayerLeft = (data: { userId: string; username: string }) => {
       console.log('👋 Joueur parti:', data.username);
-      toast.info(`${data.username} a quitté le salon`);
+      toast(`${data.username} a quitté le salon`, { icon: '👋' });
 
       // Mettre à jour la liste des joueurs
-      if (currentRoom) {
-        const updatedRoom = { ...currentRoom };
-        updatedRoom.players = updatedRoom.players.filter((p: any) => p.userId !== data.userId);
-        setCurrentRoom(updatedRoom);
-      }
+      setCurrentRoom((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.filter((p: any) => p.userId !== data.userId)
+        };
+      });
     };
 
     // Événement: un joueur s'est déconnecté
     const handlePlayerDisconnected = (data: { userId: string; username: string }) => {
       console.log('🔌 Joueur déconnecté:', data.username);
-      toast.warning(`${data.username} s'est déconnecté`);
+      toast(`${data.username} s'est déconnecté`, { icon: '⚠️' });
 
       // Mettre à jour le statut du joueur
-      if (currentRoom) {
-        const updatedRoom = { ...currentRoom };
-        const player = updatedRoom.players.find((p: any) => p.userId === data.userId);
-        if (player) {
-          player.status = 'disconnected';
-          setCurrentRoom(updatedRoom);
-        }
-      }
+      setCurrentRoom((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.map((p: any) =>
+            p.userId === data.userId
+              ? { ...p, status: 'disconnected' }
+              : p
+          )
+        };
+      });
     };
 
     // Événement: un joueur a été retiré (timeout)
@@ -111,11 +155,13 @@ export const useRoom = (roomCode?: string) => {
       toast.error(`${data.username} a été retiré du salon (timeout)`);
 
       // Mettre à jour la liste des joueurs
-      if (currentRoom) {
-        const updatedRoom = { ...currentRoom };
-        updatedRoom.players = updatedRoom.players.filter((p: any) => p.userId !== data.userId);
-        setCurrentRoom(updatedRoom);
-      }
+      setCurrentRoom((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.filter((p: any) => p.userId !== data.userId)
+        };
+      });
     };
 
     // Événement: message reçu
@@ -139,17 +185,10 @@ export const useRoom = (roomCode?: string) => {
     socketService.on('room:message', handleMessage);
     socketService.on('room:error', handleError);
 
-    // Nettoyage
-    return () => {
-      socketService.off('room:joined', handleRoomJoined);
-      socketService.off('room:player_joined', handlePlayerJoined);
-      socketService.off('room:player_left', handlePlayerLeft);
-      socketService.off('room:player_disconnected', handlePlayerDisconnected);
-      socketService.off('room:player_removed', handlePlayerRemoved);
-      socketService.off('room:message', handleMessage);
-      socketService.off('room:error', handleError);
-    };
-  }, [currentRoom, setCurrentRoom]);
+    // NE PAS NETTOYER les listeners - ils doivent rester actifs toute la session
+    // Sinon on manque des événements à cause de React.StrictMode
+    console.log('✅ [useRoom] Listeners setup complete, they will stay active');
+  }, [setCurrentRoom]);
 
   /**
    * Se connecter au Socket.io au montage si pas déjà connecté
@@ -158,16 +197,67 @@ export const useRoom = (roomCode?: string) => {
     if (!socketService.isConnected()) {
       socketService.connect();
     }
+  }, []);
 
-    // Rejoindre automatiquement le salon si un code est fourni
-    if (roomCode && socketService.isConnected()) {
-      joinRoom(roomCode);
+  /**
+   * Rejoindre automatiquement le salon si un code est fourni
+   */
+  useEffect(() => {
+    console.log('🔍 [useRoom] useEffect triggered', {
+      roomCode,
+      lastJoinedRoom: lastJoinedRoom.current,
+      isConnected: socketService.isConnected(),
+      hasJoined: hasJoinedRoom.current
+    });
+
+    // Ne pas rejoindre si pas de code ou si on a déjà rejoint ce salon
+    if (!roomCode) {
+      console.log('⏭️  [useRoom] No roomCode, skipping');
+      return;
     }
 
-    // Déconnexion au démontage du composant racine
-    return () => {
-      // On ne déconnecte pas ici car d'autres composants peuvent utiliser le socket
+    if (lastJoinedRoom.current === roomCode) {
+      console.log('⏭️  [useRoom] Already joined this room, skipping');
+      return;
+    }
+
+    // Attendre que le socket soit connecté
+    const checkAndJoin = () => {
+      console.log('🔍 [useRoom] checkAndJoin called', {
+        isConnected: socketService.isConnected(),
+        lastJoinedRoom: lastJoinedRoom.current,
+        roomCode
+      });
+
+      if (socketService.isConnected() && lastJoinedRoom.current !== roomCode) {
+        console.log('✅ [useRoom] Conditions met, joining room');
+        lastJoinedRoom.current = roomCode;
+        hasJoinedRoom.current = true;
+        console.log('🚪 Auto-joining room:', roomCode);
+        joinRoom(roomCode);
+      } else {
+        console.log('❌ [useRoom] Conditions not met, not joining');
+      }
     };
+
+    // Si déjà connecté, rejoindre immédiatement
+    if (socketService.isConnected()) {
+      console.log('📡 [useRoom] Socket already connected, checking to join');
+      checkAndJoin();
+    } else {
+      console.log('⏳ [useRoom] Socket not connected, waiting for connection');
+      // Sinon, attendre la connexion
+      const onConnect = () => {
+        console.log('📡 [useRoom] Socket connected event received');
+        checkAndJoin();
+      };
+      socketService.on('connect', onConnect);
+
+      return () => {
+        console.log('🧹 [useRoom] Cleanup: removing connect listener');
+        socketService.off('connect', onConnect);
+      };
+    }
   }, [roomCode, joinRoom]);
 
   return {

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRoom } from '../../hooks/useRoom';
 import { useAuthStore } from '../../stores/authStore';
-import toast from 'react-hot-toast';
+import { socketService } from '../../services/socket';
 
 const gameTypeLabels = {
   perudo: '🎲 Perudo',
@@ -11,6 +11,8 @@ const gameTypeLabels = {
 };
 
 export default function WaitingRoom() {
+  console.log('🎨 [WaitingRoom] Component rendering');
+
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { user } = useAuthStore();
@@ -18,28 +20,40 @@ export default function WaitingRoom() {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
 
+  console.log('🎨 [WaitingRoom] State:', {
+    code,
+    hasCurrentRoom: !!currentRoom,
+    isConnected,
+    userId: user?._id,
+    username: user?.username
+  });
+
   // Ajouter un listener pour les messages
   useEffect(() => {
-    const { socketService } = require('../../services/socket');
+    console.log('💬 [WaitingRoom] Setting up message listener');
 
     const handleMessage = (data: any) => {
+      console.log('💬 [WaitingRoom] Message received:', data);
       setMessages(prev => [...prev, data]);
     };
 
     socketService.on('room:message', handleMessage);
 
     return () => {
+      console.log('💬 [WaitingRoom] Cleaning up message listener');
       socketService.off('room:message', handleMessage);
     };
   }, []);
 
   const handleLeave = () => {
+    console.log('👋 [WaitingRoom] handleLeave called');
     leaveRoom();
     navigate('/lobby');
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('💬 [WaitingRoom] handleSendMessage called', { message });
     if (message.trim()) {
       sendMessage(message);
       setMessage('');
@@ -47,11 +61,14 @@ export default function WaitingRoom() {
   };
 
   const handleStartGame = () => {
-    // TODO: Implémenter le démarrage de la partie
-    toast.info('Fonctionnalité à venir...');
+    console.log('🎮 [WaitingRoom] handleStartGame called', { code });
+    // Démarrer le jeu via Socket.io
+    socketService.emit('game:create', { roomCode: code });
+    navigate(`/game/${code}`);
   };
 
   if (!currentRoom) {
+    console.log('⏳ [WaitingRoom] Waiting for room data...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -62,8 +79,42 @@ export default function WaitingRoom() {
     );
   }
 
-  const isHost = user?._id === currentRoom.host._id;
+  // Vérification défensive des données
+  if (!currentRoom.players || !Array.isArray(currentRoom.players)) {
+    console.error('❌ [WaitingRoom] Invalid room data - players is not an array:', currentRoom);
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 text-xl mb-4">Erreur: Données du salon invalides</p>
+          <button
+            onClick={() => navigate('/lobby')}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Retour au lobby
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  console.log('🏠 [WaitingRoom] Room data available', {
+    code: currentRoom.code,
+    host: currentRoom.host,
+    playersCount: currentRoom.players.length
+  });
+
+  // currentRoom.host peut être soit un objet avec _id, soit directement un ID string
+  const hostId = typeof currentRoom.host === 'string'
+    ? currentRoom.host
+    : currentRoom.host?._id;
+  const isHost = user?._id === hostId;
   const playerCount = currentRoom.players.filter((p: any) => p.status === 'connected').length;
+
+  console.log('👤 [WaitingRoom] Computed values:', {
+    hostId,
+    isHost,
+    playerCount
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -104,12 +155,13 @@ export default function WaitingRoom() {
               <div className="space-y-3">
                 {currentRoom.players.map((player: any, index: number) => {
                   const playerUser = player.userId;
-                  const isCurrentHost = playerUser._id === currentRoom.host._id;
+                  const playerUserId = typeof playerUser === 'string' ? playerUser : playerUser._id;
+                  const isCurrentHost = playerUserId === hostId;
                   const isDisconnected = player.status === 'disconnected';
 
                   return (
                     <div
-                      key={player.userId._id || index}
+                      key={player._id || `${playerUserId}-${index}`}
                       className={`flex items-center justify-between p-4 rounded-lg border-2 ${
                         isDisconnected
                           ? 'bg-gray-100 border-gray-300'
@@ -122,7 +174,7 @@ export default function WaitingRoom() {
                         }`}></div>
                         <div>
                           <p className={`font-medium ${isDisconnected ? 'text-gray-500' : 'text-gray-800'}`}>
-                            {playerUser.username || 'Joueur'}
+                            {(typeof playerUser === 'string' ? playerUser : playerUser.username) || 'Joueur'}
                             {isCurrentHost && ' 👑'}
                           </p>
                           {isDisconnected && (

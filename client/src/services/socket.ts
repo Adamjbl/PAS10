@@ -5,19 +5,41 @@ class SocketService {
   private socket: Socket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
+  private joinedRooms: Set<string> = new Set(); // Track les salons déjà joints
+  private pendingJoins: Set<string> = new Set(); // Track les joins en cours
 
   /**
    * Connecter au serveur Socket.io
    */
   connect() {
-    const { token } = useAuthStore.getState();
+    console.log('🔌 [SocketService] connect() called', {
+      hasSocket: !!this.socket,
+      isConnected: this.socket?.connected
+    });
 
-    if (!token) {
-      console.error('❌ Impossible de se connecter: aucun token');
+    // Ne pas reconnecter si déjà connecté
+    if (this.socket && this.socket.connected) {
+      console.log('✅ [SocketService] Socket.io déjà connecté, skipping');
       return;
     }
 
-    const serverUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    const { token } = useAuthStore.getState();
+
+    if (!token) {
+      console.error('❌ [SocketService] Impossible de se connecter: aucun token');
+      return;
+    }
+
+    console.log('🔑 [SocketService] Token found, length:', token.length);
+
+    // Déconnecter l'ancien socket s'il existe
+    if (this.socket) {
+      console.log('🔌 [SocketService] Disconnecting old socket');
+      this.socket.disconnect();
+    }
+
+    const serverUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+    console.log('🌐 [SocketService] Server URL:', serverUrl);
 
     this.socket = io(serverUrl, {
       auth: {
@@ -32,7 +54,7 @@ class SocketService {
 
     this.setupEventListeners();
 
-    console.log('🔌 Connexion Socket.io en cours...');
+    console.log('🔌 [SocketService] Connexion Socket.io en cours...');
   }
 
   /**
@@ -46,8 +68,21 @@ class SocketService {
       this.reconnectAttempts = 0;
     });
 
+    // Écouter les événements de salon pour mettre à jour le tracking
+    this.socket.on('room:joined', (data: { room: any }) => {
+      const roomCode = data.room?.code?.toUpperCase();
+      if (roomCode) {
+        console.log('✅ [SocketService] Salon joint confirmé:', roomCode);
+        this.joinedRooms.add(roomCode);
+        this.pendingJoins.delete(roomCode);
+      }
+    });
+
     this.socket.on('disconnect', (reason) => {
       console.log('❌ Socket.io déconnecté:', reason);
+      // Nettoyer le tracking des salons lors de la déconnexion
+      this.joinedRooms.clear();
+      this.pendingJoins.clear();
     });
 
     this.socket.on('connect_error', (error) => {
@@ -89,23 +124,60 @@ class SocketService {
    * Rejoindre un salon
    */
   joinRoom(roomCode: string) {
+    const normalizedCode = roomCode.toUpperCase();
+
+    console.log('🚪 [SocketService] joinRoom() called', {
+      roomCode: normalizedCode,
+      hasSocket: !!this.socket,
+      isConnected: this.socket?.connected,
+      socketId: this.socket?.id,
+      alreadyJoined: this.joinedRooms.has(normalizedCode),
+      joinPending: this.pendingJoins.has(normalizedCode)
+    });
+
     if (!this.socket) {
-      console.error('❌ Socket non connecté');
+      console.error('❌ [SocketService] Socket non connecté');
       return;
     }
 
-    console.log('🚪 Rejoindre le salon:', roomCode);
-    this.socket.emit('room:join', roomCode);
+    // Vérifier si on a déjà joint ce salon
+    if (this.joinedRooms.has(normalizedCode)) {
+      console.log('⏭️  [SocketService] Salon déjà joint, skipping');
+      return;
+    }
+
+    // Vérifier si un join est déjà en cours pour ce salon
+    if (this.pendingJoins.has(normalizedCode)) {
+      console.log('⏳ [SocketService] Join déjà en cours pour ce salon, skipping');
+      return;
+    }
+
+    // Marquer le join comme en cours
+    this.pendingJoins.add(normalizedCode);
+
+    console.log('📤 [SocketService] Émission de room:join avec code:', normalizedCode);
+    this.socket.emit('room:join', normalizedCode);
+    console.log('✅ [SocketService] room:join émis');
   }
 
   /**
    * Quitter un salon
    */
   leaveRoom(roomCode: string) {
-    if (!this.socket) return;
+    const normalizedCode = roomCode.toUpperCase();
 
-    console.log('👋 Quitter le salon:', roomCode);
-    this.socket.emit('room:leave', roomCode);
+    console.log('👋 [SocketService] leaveRoom() called', { roomCode: normalizedCode });
+    if (!this.socket) {
+      console.error('❌ [SocketService] Socket non connecté');
+      return;
+    }
+
+    // Nettoyer le tracking
+    this.joinedRooms.delete(normalizedCode);
+    this.pendingJoins.delete(normalizedCode);
+
+    console.log('📤 [SocketService] Émission de room:leave avec code:', normalizedCode);
+    this.socket.emit('room:leave', normalizedCode);
   }
 
   /**
@@ -121,7 +193,19 @@ class SocketService {
    * Écouter un événement
    */
   on(event: string, callback: (...args: any[]) => void) {
-    if (!this.socket) return;
+    console.log('👂 [SocketService] Registering listener for event:', event);
+    if (!this.socket) {
+      console.warn('⚠️  [SocketService] Socket not initialized yet, listener will be registered on connect');
+      // Attendre que le socket soit initialisé
+      const checkInterval = setInterval(() => {
+        if (this.socket) {
+          console.log('✅ [SocketService] Socket now ready, registering listener for:', event);
+          clearInterval(checkInterval);
+          this.socket.on(event, callback);
+        }
+      }, 50);
+      return;
+    }
 
     this.socket.on(event, callback);
   }
@@ -130,6 +214,7 @@ class SocketService {
    * Arrêter d'écouter un événement
    */
   off(event: string, callback?: (...args: any[]) => void) {
+    console.log('🔇 [SocketService] Removing listener for event:', event);
     if (!this.socket) return;
 
     if (callback) {
@@ -151,6 +236,22 @@ class SocketService {
    */
   getSocketId(): string | undefined {
     return this.socket?.id;
+  }
+
+  /**
+   * Obtenir l'ID de l'utilisateur
+   */
+  getUserId(): string | undefined {
+    const { user } = useAuthStore.getState();
+    return user?._id;
+  }
+
+  /**
+   * Émettre un événement
+   */
+  emit(event: string, data: any): void {
+    if (!this.socket) return;
+    this.socket.emit(event, data);
   }
 }
 

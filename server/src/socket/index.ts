@@ -1,11 +1,16 @@
 import { Server } from 'socket.io';
 import { authenticateSocket, AuthSocket } from './auth.socket';
 import { setupRoomHandlers } from './handlers/room.handler';
+import { setupGameHandlers } from './handlers/game.handler';
+import { gameManager } from '../games/core/GameManager';
 
 /**
  * Configuration et initialisation de Socket.io
  */
 export const setupSocketIO = (io: Server) => {
+  // Initialiser le GameManager avec le serveur Socket.io
+  gameManager.initialize(io);
+
   // Middleware d'authentification
   io.use(authenticateSocket);
 
@@ -15,6 +20,7 @@ export const setupSocketIO = (io: Server) => {
 
     // Setup des handlers
     setupRoomHandlers(io, socket);
+    setupGameHandlers(io, socket);
 
     // Déconnexion
     socket.on('disconnect', (reason) => {

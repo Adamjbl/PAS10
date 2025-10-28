@@ -23,19 +23,19 @@ export const authenticateSocket = async (socket: AuthSocket, next: (err?: Error)
     // Vérifier le token
     const decoded = verifyToken(token);
 
-    if (!decoded || typeof decoded === 'string') {
+    if (!decoded) {
       return next(new Error('Token invalide'));
     }
 
     // Récupérer l'utilisateur
-    const user = await User.findById(decoded._id).select('-password');
+    const user = await User.findById(decoded.userId).select('-password');
 
     if (!user) {
       return next(new Error('Utilisateur non trouvé'));
     }
 
     // Attacher l'utilisateur au socket
-    socket.userId = user._id.toString();
+    socket.userId = (user._id as any).toString();
     socket.user = user;
 
     next();

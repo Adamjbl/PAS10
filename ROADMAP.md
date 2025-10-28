@@ -104,22 +104,22 @@
 ## Phase 5: WebSocket et Temps Réel 🔴
 
 ### 5.1 Backend - Configuration Socket.io
-- [ ] Créer le setup Socket.io (`/server/src/socket/index.ts`)
-- [ ] Créer le middleware d'authentification Socket (`/server/src/socket/auth.socket.ts`)
-- [ ] Créer le handler de room (`/server/src/socket/handlers/room.handler.ts`)
-  - [ ] Événement `room:join` (rejoindre un salon)
-  - [ ] Événement `room:leave` (quitter un salon)
-  - [ ] Événement `disconnect` (déconnexion)
-  - [ ] Événement `room:reconnect` (reconnexion)
-- [ ] Intégrer Socket.io avec Express
+- [x] Créer le setup Socket.io (`/server/src/socket/index.ts`)
+- [x] Créer le middleware d'authentification Socket (`/server/src/socket/auth.socket.ts`)
+- [x] Créer le handler de room (`/server/src/socket/handlers/room.handler.ts`)
+  - [x] Événement `room:join` (rejoindre un salon)
+  - [x] Événement `room:leave` (quitter un salon)
+  - [x] Événement `disconnect` (déconnexion)
+  - [x] Événement `room:reconnect` (reconnexion)
+- [x] Intégrer Socket.io avec Express
 
 ### 5.2 Frontend - Client Socket.io
-- [ ] Créer le service Socket.io (`/client/src/services/socket.ts`)
-- [ ] Connecter le socket à l'authentification (envoyer le JWT)
-- [ ] Créer le composant WaitingRoom (`/client/src/components/room/WaitingRoom.tsx`)
-- [ ] Afficher la liste des joueurs en temps réel
-- [ ] Implémenter les notifications (joueur rejoint/quitte)
-- [ ] Créer le hook useRoom (`/client/src/hooks/useRoom.ts`)
+- [x] Créer le service Socket.io (`/client/src/services/socket.ts`)
+- [x] Connecter le socket à l'authentification (envoyer le JWT)
+- [x] Créer le composant WaitingRoom (`/client/src/components/room/WaitingRoom.tsx`)
+- [x] Afficher la liste des joueurs en temps réel
+- [x] Implémenter les notifications (joueur rejoint/quitte)
+- [x] Créer le hook useRoom (`/client/src/hooks/useRoom.ts`)
 
 ### 5.3 Tests d'Intégration Temps Réel
 - [ ] Tester avec 2 navigateurs : créer un salon et le rejoindre
@@ -132,50 +132,50 @@
 ## Phase 6: Architecture de Jeu (Game Logic) 🔴
 
 ### 6.1 Interface et Structure
-- [ ] Créer l'interface IGameManager (`/server/src/games/GameManager.interface.ts`)
-- [ ] Créer le fichier index (`/server/src/games/index.ts`)
-- [ ] Créer les types partagés (`/server/src/types/game.types.ts`)
+- [x] Créer l'interface IGame (`/server/src/games/core/GameInterface.ts`)
+- [x] Créer le BaseGame (`/server/src/games/core/BaseGame.ts`)
+- [x] Créer le GameManager (`/server/src/games/core/GameManager.ts`)
 
 ### 6.2 Backend - Handler de Jeu
-- [ ] Créer le handler de jeu (`/server/src/socket/handlers/game.handler.ts`)
-  - [ ] Événement `game:start` (démarrer la partie)
-  - [ ] Événement `game:action` (action de jeu)
-  - [ ] Événement `game:end` (terminer la partie)
-- [ ] Implémenter la validation des actions
-- [ ] Implémenter le système d'historique
+- [x] Créer le handler de jeu (`/server/src/socket/handlers/game.handler.ts`)
+  - [x] Événement `game:create` (créer et démarrer la partie)
+  - [x] Événement `game:move` (traiter un mouvement)
+  - [x] Événement `game:pause` et `game:resume`
+  - [x] Événement `game:end` (terminer la partie)
+- [x] Implémenter la validation des actions
+- [x] Implémenter le système d'historique
 
-### 6.3 Frontend - Store de Jeu
-- [ ] Créer le store Zustand pour le jeu (`/client/src/stores/gameStore.ts`)
-- [ ] Créer le hook useGame (`/client/src/hooks/useGame.ts`)
-- [ ] Gérer les mises à jour en temps réel
+### 6.3 Frontend - Hook et Composants de Jeu
+- [x] Créer le hook useGame (`/client/src/hooks/useGame.ts`)
+- [x] Créer le composant GameView (`/client/src/components/games/GameView.tsx`)
+- [x] Gérer les mises à jour en temps réel
 
 ---
 
 ## Phase 7: Premier Jeu - Perudo 🟡
 
 ### 7.1 Backend - Logique Perudo
-- [ ] Créer les types Perudo (`/server/src/games/perudo/perudo.types.ts`)
-- [ ] Créer PerudoManager (`/server/src/games/perudo/PerudoManager.ts`)
-  - [ ] Implémenter `initGame()` (initialiser la partie)
-  - [ ] Implémenter `validateAction()` (valider les actions)
-  - [ ] Implémenter `executeAction()` (exécuter les actions)
-    - [ ] Action: ROLL_DICE
-    - [ ] Action: BID
-    - [ ] Action: CALL_BLUFF
-  - [ ] Implémenter `getPublicState()` (état visible par tous)
-  - [ ] Implémenter `getPrivateData()` (dés du joueur)
-  - [ ] Implémenter `checkWinCondition()` (vérifier la victoire)
+- [x] Créer PerudoGame (`/server/src/games/perudo/PerudoGame.ts`)
+  - [x] Implémenter `onStart()` (initialiser la partie)
+  - [x] Implémenter `validateMove()` (valider les actions)
+  - [x] Implémenter `onProcessMove()` (exécuter les actions)
+    - [x] Action: BID (enchérir)
+    - [x] Action: CHALLENGE (défier/dudo)
+    - [x] Action: EXACT (calza)
+  - [x] Implémenter `getPublicState()` (état visible par tous)
+  - [x] Implémenter les dés privés par joueur
+  - [x] Implémenter `isGameOver()` et `calculateResult()`
 - [ ] Tester la logique avec des cas de test
 
 ### 7.2 Frontend - Interface Perudo
-- [ ] Créer le composant PerudoBoard (`/client/src/components/games/perudo/PerudoBoard.tsx`)
-- [ ] Créer le composant DiceDisplay (`/client/src/components/games/perudo/DiceDisplay.tsx`)
-- [ ] Créer le composant BidControls (`/client/src/components/games/perudo/BidControls.tsx`)
-- [ ] Créer le composant PlayerList (`/client/src/components/games/perudo/PlayerList.tsx`)
-- [ ] Implémenter l'affichage des dés du joueur
-- [ ] Implémenter le système d'enchères (UI)
-- [ ] Implémenter le bouton "Menteur!" (Call Bluff)
-- [ ] Afficher l'historique des actions
+- [x] Créer le composant PerudoGame (`/client/src/components/games/perudo/PerudoGame.tsx`)
+- [x] Affichage des dés du joueur avec emojis
+- [x] Système d'enchères avec contrôles (quantité + valeur)
+- [x] Boutons "Défier (Dudo)" et "Exact (Calza)"
+- [x] Affichage du nombre de dés restants par joueur
+- [x] Affichage de l'enchère actuelle
+- [x] Section règles rapides
+- [ ] Améliorer l'UX avec animations
 
 ### 7.3 Tests Perudo
 - [ ] Tester une partie complète avec 2 joueurs
@@ -371,7 +371,19 @@
 ✅ **Phase 2 : Base de Données et Modèles - TERMINÉE !**
 ✅ **Phase 3 : Authentification - TERMINÉE !**
 ✅ **Phase 4 : Système de Rooms - TERMINÉE !**
+✅ **Phase 5 : WebSocket et Temps Réel - TERMINÉE !** (reste les tests)
+✅ **Phase 6 : Architecture de Jeu - TERMINÉE !**
+✅ **Phase 7 : Premier Jeu - Perudo - EN COURS !** (logique et UI complètes, reste les tests)
 
-👉 **Prochaine : Phase 5 - WebSocket et Temps Réel**
+👉 **Prochaine : Tester Perudo avec une vraie partie**
 
-Tape "phase 5" ou "go" pour continuer !
+Commandes pour démarrer :
+```bash
+# Terminal 1 - Serveur
+cd server
+npm run dev
+
+# Terminal 2 - Client
+cd client
+npm run dev
+```

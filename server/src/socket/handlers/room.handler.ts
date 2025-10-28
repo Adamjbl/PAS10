@@ -1,4 +1,4 @@
-import { Server, Socket } from 'socket.io';
+import { Server } from 'socket.io';
 import Room from '../../models/Room';
 import { AuthSocket } from '../auth.socket';
 
@@ -10,25 +10,45 @@ export const setupRoomHandlers = (io: Server, socket: AuthSocket) => {
    * Rejoindre un salon
    */
   socket.on('room:join', async (roomCode: string) => {
+    console.log('📥 [room.handler] room:join received', {
+      roomCode,
+      socketId: socket.id,
+      userId: socket.userId,
+      username: socket.user?.username
+    });
+
     try {
       if (!socket.userId) {
+        console.error('❌ [room.handler] User not authenticated');
         socket.emit('room:error', { message: 'Utilisateur non authentifié' });
         return;
       }
 
+      console.log('🔍 [room.handler] Finding room:', roomCode.toUpperCase());
       // Trouver le salon
       const room = await Room.findOne({ code: roomCode.toUpperCase() })
         .populate('host', 'username email')
         .populate('players.userId', 'username email');
 
       if (!room) {
+        console.error('❌ [room.handler] Room not found:', roomCode);
         socket.emit('room:error', { message: 'Salon non trouvé' });
         return;
       }
 
+      console.log('✅ [room.handler] Room found', {
+        roomId: room._id,
+        code: room.code,
+        playerCount: room.players.length,
+        maxPlayers: room.maxPlayers
+      });
+
       // Vérifier si le salon est plein
       const connectedPlayers = room.players.filter(p => p.status === 'connected');
+      console.log('👥 [room.handler] Connected players:', connectedPlayers.length, '/', room.maxPlayers);
+
       if (connectedPlayers.length >= room.maxPlayers && !room.players.some(p => p.userId.toString() === socket.userId)) {
+        console.error('❌ [room.handler] Room is full');
         socket.emit('room:error', { message: 'Salon complet' });
         return;
       }
@@ -37,11 +57,13 @@ export const setupRoomHandlers = (io: Server, socket: AuthSocket) => {
       const existingPlayer = room.players.find(p => p.userId.toString() === socket.userId);
 
       if (existingPlayer) {
+        console.log('🔄 [room.handler] Player reconnecting');
         // Reconnexion - mettre à jour le socketId et le statut
         existingPlayer.socketId = socket.id;
         existingPlayer.status = 'connected';
         existingPlayer.disconnectedAt = undefined;
       } else {
+        console.log('🆕 [room.handler] New player joining');
         // Nouveau joueur
         room.players.push({
           userId: socket.userId as any,
@@ -51,27 +73,40 @@ export const setupRoomHandlers = (io: Server, socket: AuthSocket) => {
         });
       }
 
+      console.log('💾 [room.handler] Saving room...');
       await room.save();
+      console.log('✅ [room.handler] Room saved');
+
+      console.log('👥 [room.handler] Populating players...');
       await room.populate('players.userId', 'username email');
+      console.log('✅ [room.handler] Players populated');
 
       // Rejoindre la room Socket.io
+      console.log('🚪 [room.handler] Joining socket.io room:', roomCode.toUpperCase());
       socket.join(roomCode.toUpperCase());
 
-      // Notifier le joueur
-      socket.emit('room:joined', {
-        room: {
-          _id: room._id,
-          code: room.code,
-          host: room.host,
-          players: room.players,
-          gameType: room.gameType,
-          status: room.status,
-          maxPlayers: room.maxPlayers,
-          isPrivate: room.isPrivate,
-          createdAt: room.createdAt
-        }
+      const roomData = {
+        _id: room._id,
+        code: room.code,
+        host: room.host,
+        players: room.players,
+        gameType: room.gameType,
+        status: room.status,
+        maxPlayers: room.maxPlayers,
+        isPrivate: room.isPrivate,
+        createdAt: room.createdAt
+      };
+
+      console.log('📤 [room.handler] Emitting room:joined to client', {
+        socketId: socket.id,
+        roomCode: room.code,
+        playersCount: room.players.length
       });
 
+      // Notifier le joueur
+      socket.emit('room:joined', { room: roomData });
+
+      console.log('📤 [room.handler] Emitting room:player_joined to other players');
       // Notifier tous les autres joueurs du salon
       socket.to(roomCode.toUpperCase()).emit('room:player_joined', {
         player: {

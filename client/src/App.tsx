@@ -6,6 +6,7 @@ import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 import Lobby from './components/lobby/Lobby';
 import WaitingRoom from './components/room/WaitingRoom';
+import GameView from './components/games/GameView';
 
 function App() {
   const [showRegister, setShowRegister] = useState(false);
@@ -70,6 +71,7 @@ function App() {
         <Routes>
           <Route path="/lobby" element={<Lobby />} />
           <Route path="/room/:code" element={<WaitingRoom />} />
+          <Route path="/game/:code" element={<GameView />} />
           <Route path="/" element={<Navigate to="/lobby" replace />} />
           <Route path="*" element={<Navigate to="/lobby" replace />} />
         </Routes>

@@ -8,7 +8,12 @@
       "Bash(findstr:*)",
       "Bash(taskkill:*)",
       "Bash(npx kill-port 3000)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(npm run build:*)",
+      "Bash(tasklist:*)",
+      "Read(//c/Users/Adam/Documents/GitHub/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []

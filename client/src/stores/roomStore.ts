@@ -51,38 +51,69 @@ export const useRoomStore = create<RoomState>((set) => ({
   isLoading: false,
   error: null,
 
-  setRooms: (rooms) => set({ rooms }),
+  setRooms: (rooms) => {
+    console.log('🏪 [RoomStore] setRooms called', { count: rooms.length });
+    set({ rooms });
+  },
 
-  setCurrentRoom: (room) => set({ currentRoom: room }),
+  setCurrentRoom: (room) => {
+    console.log('🏪 [RoomStore] setCurrentRoom called', {
+      hasRoom: !!room,
+      roomCode: room?.code,
+      playersCount: room?.players?.length
+    });
+    set({ currentRoom: room });
+  },
 
-  addRoom: (room) => set((state) => ({
-    rooms: [room, ...state.rooms]
-  })),
+  addRoom: (room) => {
+    console.log('🏪 [RoomStore] addRoom called', { roomCode: room.code });
+    set((state) => ({
+      rooms: [room, ...state.rooms]
+    }));
+  },
 
-  updateRoom: (roomId, updates) => set((state) => ({
-    rooms: state.rooms.map(room =>
-      room._id === roomId ? { ...room, ...updates } : room
-    ),
-    currentRoom: state.currentRoom?._id === roomId
-      ? { ...state.currentRoom, ...updates }
-      : state.currentRoom
-  })),
+  updateRoom: (roomId, updates) => {
+    console.log('🏪 [RoomStore] updateRoom called', { roomId, updates });
+    set((state) => ({
+      rooms: state.rooms.map(room =>
+        room._id === roomId ? { ...room, ...updates } : room
+      ),
+      currentRoom: state.currentRoom?._id === roomId
+        ? { ...state.currentRoom, ...updates }
+        : state.currentRoom
+    }));
+  },
 
-  removeRoom: (roomId) => set((state) => ({
-    rooms: state.rooms.filter(room => room._id !== roomId),
-    currentRoom: state.currentRoom?._id === roomId ? null : state.currentRoom
-  })),
+  removeRoom: (roomId) => {
+    console.log('🏪 [RoomStore] removeRoom called', { roomId });
+    set((state) => ({
+      rooms: state.rooms.filter(room => room._id !== roomId),
+      currentRoom: state.currentRoom?._id === roomId ? null : state.currentRoom
+    }));
+  },
 
-  setLoading: (loading) => set({ isLoading: loading }),
+  setLoading: (loading) => {
+    console.log('🏪 [RoomStore] setLoading called', { loading });
+    set({ isLoading: loading });
+  },
 
-  setError: (error) => set({ error }),
+  setError: (error) => {
+    console.log('🏪 [RoomStore] setError called', { error });
+    set({ error });
+  },
 
-  clearError: () => set({ error: null }),
+  clearError: () => {
+    console.log('🏪 [RoomStore] clearError called');
+    set({ error: null });
+  },
 
-  reset: () => set({
-    rooms: [],
-    currentRoom: null,
-    isLoading: false,
-    error: null
-  })
+  reset: () => {
+    console.log('🏪 [RoomStore] reset called');
+    set({
+      rooms: [],
+      currentRoom: null,
+      isLoading: false,
+      error: null
+    });
+  }
 }));
