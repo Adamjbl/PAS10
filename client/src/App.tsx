@@ -17,13 +17,13 @@ function App() {
     return (
       <>
         <Toaster position="top-right" />
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
           <div className="container mx-auto px-4 py-16">
             <div className="text-center mb-8">
-              <h1 className="text-6xl font-bold text-gray-800 mb-4">
+              <h1 className="text-6xl font-bold text-white mb-4">
                 🎮 Board Game Arena
               </h1>
-              <p className="text-xl text-gray-600">
+              <p className="text-xl text-gray-400">
                 Jouez à des jeux de société avec vos amis en temps réel
               </p>
             </div>
@@ -43,23 +43,23 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" />
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
         {/* Header */}
-        <div className="bg-white shadow-sm border-b">
+        <div className="bg-gray-800/60 shadow-sm border-b border-gray-700">
           <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <Link to="/lobby" className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-800 hover:text-primary-600 transition-colors">
+              <h1 className="text-2xl font-bold text-white hover:text-amber-500 transition-colors">
                 🎮 Board Game Arena
               </h1>
             </Link>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-800">{user?.username}</p>
-                <p className="text-xs text-gray-600">{user?.stats.gamesWon} victoires</p>
+                <p className="text-sm font-medium text-white">{user?.username}</p>
+                <p className="text-xs text-gray-400">{user?.stats.gamesWon} victoires</p>
               </div>
               <button
                 onClick={logout}
-                className="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                className="bg-gray-700 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
               >
                 Déconnexion
               </button>

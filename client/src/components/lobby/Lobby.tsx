@@ -33,14 +33,14 @@ export default function Lobby() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* En-tête */}
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-gray-800 mb-2">
+          <h1 className="text-5xl font-bold text-white mb-2">
             🎮 Lobby
           </h1>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg text-gray-400">
             Rejoignez un salon ou créez-en un nouveau
           </p>
         </div>
@@ -49,7 +49,7 @@ export default function Lobby() {
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-primary-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-md"
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md"
           >
             ➕ Créer un salon
           </button>
@@ -62,24 +62,24 @@ export default function Lobby() {
           <button
             onClick={fetchRooms}
             disabled={isLoading}
-            className="bg-gray-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-700 transition-colors shadow-md disabled:opacity-50"
+            className="bg-gray-700 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-600 transition-colors shadow-md disabled:opacity-50"
           >
             🔄 Actualiser
           </button>
         </div>
 
         {/* Liste des salons */}
-        <div className="card">
-          <h2 className="text-2xl font-bold mb-4">Salons disponibles</h2>
+        <div className="bg-gray-800/60 border border-gray-700 rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Salons disponibles</h2>
 
           {isLoading ? (
             <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-              <p className="mt-4 text-gray-600">Chargement...</p>
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500"></div>
+              <p className="mt-4 text-gray-400">Chargement...</p>
             </div>
           ) : rooms.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-400 text-lg">
                 Aucun salon disponible pour le moment
               </p>
               <p className="text-gray-500 mt-2">

@@ -94,10 +94,10 @@ export default function WaitingRoom() {
   if (!currentRoom) {
     console.log('⏳ [WaitingRoom] Waiting for room data...');
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du salon...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Chargement du salon...</p>
         </div>
       </div>
     );
@@ -107,9 +107,9 @@ export default function WaitingRoom() {
   if (!currentRoom.players || !Array.isArray(currentRoom.players)) {
     console.error('❌ [WaitingRoom] Invalid room data - players is not an array:', currentRoom);
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 text-xl mb-4">Erreur: Données du salon invalides</p>
+          <p className="text-red-500 text-xl mb-4">Erreur: Données du salon invalides</p>
           <button
             onClick={() => navigate('/lobby')}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
@@ -141,27 +141,27 @@ export default function WaitingRoom() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="container mx-auto px-4 py-8">
         {/* En-tête */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-gray-800/60 border border-gray-700 rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              <h1 className="text-3xl font-bold text-white mb-2">
                 Salon {currentRoom.code}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-400">
                 {gameTypeLabels[currentRoom.gameType]} • {playerCount}/{currentRoom.maxPlayers} joueurs
               </p>
               {!isConnected && (
-                <p className="text-red-600 text-sm mt-2">
+                <p className="text-red-500 text-sm mt-2">
                   ⚠️ Connexion perdue... Reconnexion en cours...
                 </p>
               )}
             </div>
             <button
               onClick={handleLeave}
-              className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors"
             >
               Quitter
             </button>
@@ -171,8 +171,8 @@ export default function WaitingRoom() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Liste des joueurs */}
           <div className="md:col-span-2">
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
+            <div className="bg-gray-800/60 border border-gray-700 rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-bold text-white mb-4">
                 Joueurs ({playerCount}/{currentRoom.maxPlayers})
               </h2>
 
@@ -188,16 +188,16 @@ export default function WaitingRoom() {
                       key={player._id || `${playerUserId}-${index}`}
                       className={`flex items-center justify-between p-4 rounded-lg border-2 ${
                         isDisconnected
-                          ? 'bg-gray-100 border-gray-300'
-                          : 'bg-blue-50 border-blue-200'
+                          ? 'bg-gray-900/50 border-gray-700'
+                          : 'bg-blue-900/30 border-blue-700'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${
-                          isDisconnected ? 'bg-gray-400' : 'bg-green-500'
+                          isDisconnected ? 'bg-gray-600' : 'bg-green-500'
                         }`}></div>
                         <div>
-                          <p className={`font-medium ${isDisconnected ? 'text-gray-500' : 'text-gray-800'}`}>
+                          <p className={`font-medium ${isDisconnected ? 'text-gray-500' : 'text-white'}`}>
                             {(typeof playerUser === 'string' ? playerUser : playerUser.username) || 'Joueur'}
                             {isCurrentHost && ' 👑'}
                           </p>
@@ -223,7 +223,7 @@ export default function WaitingRoom() {
               )}
 
               {!isHost && (
-                <div className="mt-6 text-center text-gray-600">
+                <div className="mt-6 text-center text-gray-400">
                   En attente que l'hôte démarre la partie...
                 </div>
               )}
@@ -232,8 +232,8 @@ export default function WaitingRoom() {
 
           {/* Chat */}
           <div className="md:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-6 h-[500px] flex flex-col">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">Chat</h2>
+            <div className="bg-gray-800/60 border border-gray-700 rounded-lg shadow-md p-6 h-[500px] flex flex-col">
+              <h2 className="text-xl font-bold text-white mb-4">Chat</h2>
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto mb-4 space-y-2">
@@ -241,9 +241,9 @@ export default function WaitingRoom() {
                   <p className="text-gray-500 text-center">Aucun message</p>
                 ) : (
                   messages.map((msg, index) => (
-                    <div key={index} className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-sm font-medium text-gray-800">{msg.username}</p>
-                      <p className="text-gray-600">{msg.message}</p>
+                    <div key={index} className="bg-gray-900/50 rounded-lg p-3">
+                      <p className="text-sm font-medium text-white">{msg.username}</p>
+                      <p className="text-gray-400">{msg.message}</p>
                     </div>
                   ))
                 )}
@@ -256,12 +256,12 @@ export default function WaitingRoom() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Tapez un message..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="flex-1 px-4 py-2 bg-gray-900/50 border border-gray-700 text-white rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent placeholder-gray-500"
                 />
                 <button
                   type="submit"
                   disabled={!message.trim() || !isConnected}
-                  className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Envoyer
                 </button>

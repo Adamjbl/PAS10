@@ -13,7 +13,8 @@
       "Bash(tasklist:*)",
       "Read(//c/Users/Adam/Documents/GitHub/**)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
