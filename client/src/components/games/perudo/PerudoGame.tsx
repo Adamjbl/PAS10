@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGame } from '../../../hooks/useGame';
 import { useAuthStore } from '../../../stores/authStore';
+import { socketService } from '../../../services/socket';
 import toast from 'react-hot-toast';
 import { Player } from './Player';
 import { BidPanel } from './BidPanel';
@@ -8,20 +9,69 @@ import { Dice } from './Dice';
 import { Button } from '../../ui/button';
 import { motion } from 'framer-motion';
 import { Dices as DiceIcon, RotateCcw } from 'lucide-react';
+import { ChallengeResultModal } from './ChallengeResultModal';
 
 interface PerudoGameProps {
   gameState: any;
   isMyTurn: boolean;
 }
 
+interface ChallengeResultData {
+  allDice: { playerId: string; playerName: string; dice: number[] }[];
+  bidQuantity: number;
+  bidValue: number;
+  actualCount: number;
+  loserName: string;
+  success: boolean;
+}
+
 export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
   const { user } = useAuthStore();
   const { makeBid, challenge, callExact } = useGame(gameState.roomCode);
+  const [challengeResult, setChallengeResult] = useState<ChallengeResultData | null>(null);
+  const [showChallengeModal, setShowChallengeModal] = useState(false);
 
   const currentBid = gameState.currentBid;
   const totalDice = gameState.totalDiceCount || 0;
   const myPlayerId = user?._id;
   const myDice = gameState.myDice || [];
+
+  // Écouter les résultats de challenge
+  useEffect(() => {
+    const handleChallengeResolved = (data: any) => {
+      console.log('🎲 Challenge resolved:', data);
+      setChallengeResult({
+        allDice: data.allDice,
+        bidQuantity: data.bidQuantity,
+        bidValue: data.bidValue,
+        actualCount: data.actualCount,
+        loserName: data.loserName,
+        success: data.success
+      });
+      setShowChallengeModal(true);
+    };
+
+    const handleExactResolved = (data: any) => {
+      console.log('🎯 Exact resolved:', data);
+      setChallengeResult({
+        allDice: data.allDice,
+        bidQuantity: data.bidQuantity,
+        bidValue: data.bidValue,
+        actualCount: data.actualCount,
+        loserName: data.loserName,
+        success: data.success
+      });
+      setShowChallengeModal(true);
+    };
+
+    socketService.on('challenge_resolved', handleChallengeResolved);
+    socketService.on('exact_resolved', handleExactResolved);
+
+    return () => {
+      socketService.off('challenge_resolved', handleChallengeResolved);
+      socketService.off('exact_resolved', handleExactResolved);
+    };
+  }, []);
 
   // Calculer la quantité minimale pour une enchère valide
   const getMinQuantity = () => {
@@ -253,6 +303,20 @@ export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
           </div>
         </div>
       </div>
+
+      {/* Challenge Result Modal */}
+      {challengeResult && (
+        <ChallengeResultModal
+          isOpen={showChallengeModal}
+          onClose={() => setShowChallengeModal(false)}
+          allDice={challengeResult.allDice}
+          targetValue={challengeResult.bidValue}
+          targetQuantity={challengeResult.bidQuantity}
+          actualCount={challengeResult.actualCount}
+          loserName={challengeResult.loserName}
+          wasCorrect={challengeResult.success}
+        />
+      )}
     </div>
   );
 }

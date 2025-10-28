@@ -193,6 +193,17 @@ export class PerudoGame extends BaseGame {
       loserId = move.playerId;
     }
 
+    // Préparer les données de tous les dés pour l'animation
+    const allDice = this._state.players
+      .filter(p => p.status === 'active' as any)
+      .map(player => ({
+        playerId: player.userId,
+        playerName: player.username,
+        dice: this.playerDice.get(player.userId) || []
+      }));
+
+    const loserPlayer = this._state.players.find(p => p.userId === loserId);
+
     // Retirer un dé au perdant
     this.removeDieFromPlayer(loserId);
 
@@ -205,9 +216,12 @@ export class PerudoGame extends BaseGame {
     this.emit('challenge_resolved', {
       challenger: move.playerId,
       bidQuantity: this.currentBid.quantity,
+      bidValue: this.currentBid.dieValue,
       actualCount,
       loser: loserId,
-      success: actualCount < this.currentBid.quantity
+      loserName: loserPlayer?.username || 'Unknown',
+      success: actualCount < this.currentBid.quantity,
+      allDice
     });
 
     // Commencer un nouveau round
@@ -224,8 +238,27 @@ export class PerudoGame extends BaseGame {
     const actualCount = this.countDice(this.currentBid.dieValue);
     const isExact = actualCount === this.currentBid.quantity;
 
+    // Préparer les données de tous les dés pour l'animation
+    const allDice = this._state.players
+      .filter(p => p.status === 'active' as any)
+      .map(player => ({
+        playerId: player.userId,
+        playerName: player.username,
+        dice: this.playerDice.get(player.userId) || []
+      }));
+
+    let loserId: string;
+    let loserName: string;
+
     if (isExact) {
       // Réussi - tous les autres joueurs perdent un dé
+      // On considère le premier joueur affecté comme "perdant" pour l'affichage
+      const otherPlayers = this._state.players.filter(
+        p => p.status === 'active' as any && p.userId !== move.playerId
+      );
+      loserId = otherPlayers[0]?.userId || move.playerId;
+      loserName = 'Tous les autres joueurs';
+
       for (const player of this._state.players) {
         if (player.status === 'active' as any && player.userId !== move.playerId) {
           this.removeDieFromPlayer(player.userId);
@@ -237,6 +270,10 @@ export class PerudoGame extends BaseGame {
       }
     } else {
       // Échoué - le joueur perd un dé
+      loserId = move.playerId;
+      const loserPlayer = this._state.players.find(p => p.userId === loserId);
+      loserName = loserPlayer?.username || 'Unknown';
+
       this.removeDieFromPlayer(move.playerId);
       const dice = this.playerDice.get(move.playerId);
       if (!dice || dice.length === 0) {
@@ -247,8 +284,12 @@ export class PerudoGame extends BaseGame {
     this.emit('exact_resolved', {
       player: move.playerId,
       bidQuantity: this.currentBid.quantity,
+      bidValue: this.currentBid.dieValue,
       actualCount,
-      success: isExact
+      success: isExact,
+      loser: loserId,
+      loserName,
+      allDice
     });
 
     // Commencer un nouveau round

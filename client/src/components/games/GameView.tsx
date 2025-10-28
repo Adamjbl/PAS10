@@ -27,10 +27,10 @@ export default function GameView() {
 
   if (!gameState) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du jeu...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Chargement du jeu...</p>
         </div>
       </div>
     );
@@ -65,16 +65,16 @@ export default function GameView() {
   const isHost = gameState.players[0]?.userId === user?._id; // Assumons que le premier joueur est l'hôte
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* En-tête du jeu */}
-      <div className="bg-white shadow-md border-b">
+      <div className="bg-gray-800/60 shadow-md border-b border-gray-700">
         <div className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">
+              <h1 className="text-2xl font-bold text-white">
                 Salon {code} - {gameState.type.charAt(0).toUpperCase() + gameState.type.slice(1)}
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-400">
                 Statut: {
                   gameState.status === 'waiting' ? 'En attente' :
                   gameState.status === 'starting' ? 'Démarrage...' :
@@ -120,7 +120,7 @@ export default function GameView() {
 
               <button
                 onClick={() => navigate('/lobby')}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition-colors"
               >
                 Retour au lobby
               </button>
@@ -132,19 +132,19 @@ export default function GameView() {
       {/* Zone de jeu */}
       <div className="container mx-auto px-4 py-6">
         {gameState.status === 'finished' ? (
-          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <h2 className="text-3xl font-bold mb-4">🏁 Partie terminée!</h2>
+          <div className="bg-gray-800/60 border border-gray-700 rounded-lg shadow-lg p-8 text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">🏁 Partie terminée!</h2>
             {gameState.winner && (
               <div className="mb-6">
-                <p className="text-xl mb-2">Gagnant:</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-xl text-gray-400 mb-2">Gagnant:</p>
+                <p className="text-2xl font-bold text-green-500">
                   🏆 {gameState.players.find(p => p.userId === gameState.winner)?.username || 'Inconnu'}
                 </p>
               </div>
             )}
             <button
               onClick={() => navigate('/lobby')}
-              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-lg"
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-lg"
             >
               Retourner au lobby
             </button>
@@ -158,18 +158,18 @@ export default function GameView() {
 
             {/* Panneau latéral - Joueurs */}
             <div className="lg:col-span-1">
-              <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-                <h3 className="font-bold text-lg mb-3">Joueurs</h3>
+              <div className="bg-gray-800/60 border border-gray-700 rounded-lg shadow-md p-4 mb-4">
+                <h3 className="font-bold text-lg text-white mb-3">Joueurs</h3>
                 <div className="space-y-2">
                   {gameState.players.map((player) => (
                     <div
                       key={player.userId}
                       className={`p-3 rounded-lg border-2 ${
                         player.userId === gameState.currentTurn
-                          ? 'border-green-400 bg-green-50'
+                          ? 'border-green-500 bg-green-900/30'
                           : player.status === 'eliminated'
-                          ? 'border-gray-300 bg-gray-100'
-                          : 'border-gray-200'
+                          ? 'border-gray-700 bg-gray-900/50'
+                          : 'border-gray-700 bg-gray-900/30'
                       }`}
                     >
                       <div className="flex justify-between items-center">
@@ -180,18 +180,18 @@ export default function GameView() {
                             'bg-gray-400'
                           }`}></span>
                           <span className={`font-medium ${
-                            player.status === 'eliminated' ? 'text-gray-400 line-through' : ''
+                            player.status === 'eliminated' ? 'text-gray-500 line-through' : 'text-white'
                           }`}>
                             {player.username}
                             {player.userId === user?._id && ' (Vous)'}
                           </span>
                         </div>
                         {player.score !== undefined && (
-                          <span className="text-sm font-bold">{player.score}</span>
+                          <span className="text-sm font-bold text-gray-300">{player.score}</span>
                         )}
                       </div>
                       {player.userId === gameState.currentTurn && (
-                        <div className="text-xs text-green-600 mt-1">
+                        <div className="text-xs text-green-400 mt-1">
                           ▶ C'est son tour
                         </div>
                       )}
@@ -202,8 +202,8 @@ export default function GameView() {
 
               {/* Indicateur de tour */}
               {isMyTurn && gameState.status === 'in_progress' && (
-                <div className="bg-green-100 border-2 border-green-400 rounded-lg p-4 text-center animate-pulse">
-                  <p className="text-green-800 font-bold">🎲 C'est votre tour!</p>
+                <div className="bg-green-900/40 border-2 border-green-500 rounded-lg p-4 text-center animate-pulse">
+                  <p className="text-green-400 font-bold">🎲 C'est votre tour!</p>
                 </div>
               )}
             </div>
