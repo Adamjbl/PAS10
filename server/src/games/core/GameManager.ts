@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import Room from '../../models/Room';
 import { PerudoGame } from '../perudo/PerudoGame';
 import { CodenamesGame } from '../codenames/CodenamesGame';
+import { TimeBombGame } from '../timebomb/TimeBombGame';
 
 /**
  * Gestionnaire central des jeux
@@ -39,7 +40,7 @@ export class GameManager {
    */
   async createGame(
     roomCode: string,
-    gameType: 'perudo' | 'codenames' | 'quiz'
+    gameType: 'perudo' | 'codenames' | 'quiz' | 'timebomb'
   ): Promise<BaseGame> {
     // Vérifier qu'il n'y a pas déjà un jeu pour cette room
     if (this.games.has(roomCode)) {
@@ -65,6 +66,10 @@ export class GameManager {
 
       case 'codenames':
         game = new CodenamesGame(roomCode);
+        break;
+
+      case 'timebomb':
+        game = new TimeBombGame(roomCode);
         break;
 
       case 'quiz':

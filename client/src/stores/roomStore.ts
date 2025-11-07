@@ -18,7 +18,7 @@ export interface Room {
     email: string;
   };
   players: Player[];
-  gameType: 'perudo' | 'codenames' | 'quiz';
+  gameType: 'perudo' | 'codenames' | 'quiz' | 'timebomb';
   status: 'waiting' | 'in_game' | 'finished';
   maxPlayers: number;
   isPrivate: boolean;

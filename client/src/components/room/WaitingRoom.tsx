@@ -7,6 +7,7 @@ import { socketService } from '../../services/socket';
 const gameTypeLabels = {
   perudo: '🎲 Perudo',
   codenames: '🕵️ Codenames',
+  timebomb: '💣 TimeBomb',
   quiz: '🧠 Quiz'
 };
 

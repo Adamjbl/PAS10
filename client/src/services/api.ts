@@ -65,7 +65,7 @@ export const authAPI = {
 // Rooms API
 export const roomsAPI = {
   // Créer un salon
-  createRoom: async (gameType: 'perudo' | 'codenames' | 'quiz', maxPlayers: number, isPrivate: boolean) => {
+  createRoom: async (gameType: 'perudo' | 'codenames' | 'quiz' | 'timebomb', maxPlayers: number, isPrivate: boolean) => {
     const response = await api.post('/rooms', {
       gameType,
       maxPlayers,

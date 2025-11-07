@@ -8,12 +8,14 @@ interface RoomCardProps {
 const gameTypeLabels = {
   perudo: '🎲 Perudo',
   codenames: '🕵️ Codenames',
+  timebomb: '💣 TimeBomb',
   quiz: '🧠 Quiz'
 };
 
 const gameTypeColors = {
   perudo: 'bg-red-100 text-red-800',
   codenames: 'bg-blue-100 text-blue-800',
+  timebomb: 'bg-orange-100 text-orange-800',
   quiz: 'bg-purple-100 text-purple-800'
 };
 

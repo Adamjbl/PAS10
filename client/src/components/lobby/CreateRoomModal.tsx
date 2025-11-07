@@ -11,7 +11,7 @@ interface CreateRoomModalProps {
 
 export default function CreateRoomModal({ onClose, onSuccess }: CreateRoomModalProps) {
   const navigate = useNavigate();
-  const [gameType, setGameType] = useState<'perudo' | 'codenames' | 'quiz'>('perudo');
+  const [gameType, setGameType] = useState<'perudo' | 'codenames' | 'quiz' | 'timebomb'>('perudo');
   const [maxPlayers, setMaxPlayers] = useState(8);
   const [isPrivate, setIsPrivate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -46,7 +46,7 @@ export default function CreateRoomModal({ onClose, onSuccess }: CreateRoomModalP
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Type de jeu
             </label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setGameType('perudo')}
@@ -71,6 +71,19 @@ export default function CreateRoomModal({ onClose, onSuccess }: CreateRoomModalP
               >
                 <div className="text-2xl mb-1">🕵️</div>
                 <div className="text-sm font-medium">Codenames</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setGameType('timebomb')}
+                className={`p-3 rounded-lg border-2 transition-all ${
+                  gameType === 'timebomb'
+                    ? 'border-primary-600 bg-primary-50'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+              >
+                <div className="text-2xl mb-1">💣</div>
+                <div className="text-sm font-medium">TimeBomb</div>
               </button>
 
               <button

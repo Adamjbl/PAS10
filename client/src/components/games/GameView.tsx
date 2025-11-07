@@ -4,6 +4,7 @@ import { useGame } from '../../hooks/useGame';
 import { useAuthStore } from '../../stores/authStore';
 import PerudoGame from './perudo/PerudoGame';
 import CodenamesGame from './codenames/CodenamesGame';
+import TimeBombGame from './timebomb/TimeBombGame';
 import { socketService } from '../../services/socket';
 
 export default function GameView() {
@@ -44,6 +45,9 @@ export default function GameView() {
 
       case 'codenames':
         return <CodenamesGame gameState={gameState} isMyTurn={isMyTurn} socketService={socketService} />;
+
+      case 'timebomb':
+        return <TimeBombGame gameState={gameState as any} isMyTurn={isMyTurn} />;
 
       case 'quiz':
         return (

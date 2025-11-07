@@ -36,7 +36,7 @@ export interface GameMove {
 export interface GameState {
   id: string;
   roomCode: string;
-  type: 'perudo' | 'codenames' | 'quiz';
+  type: 'perudo' | 'codenames' | 'quiz' | 'timebomb';
   status: GameStatus;
   players: GamePlayer[];
   currentTurn?: string; // ID du joueur dont c'est le tour

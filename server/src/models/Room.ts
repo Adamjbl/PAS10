@@ -10,7 +10,7 @@ export interface IRoom extends Document {
     joinedAt: Date;
     disconnectedAt?: Date;
   }[];
-  gameType: 'perudo' | 'codenames' | 'quiz';
+  gameType: 'perudo' | 'codenames' | 'quiz' | 'timebomb';
   status: 'waiting' | 'in_game' | 'finished';
   maxPlayers: number;
   isPrivate: boolean;
@@ -64,7 +64,7 @@ const RoomSchema = new Schema<IRoom>(
     ],
     gameType: {
       type: String,
-      enum: ['perudo', 'codenames', 'quiz'],
+      enum: ['perudo', 'codenames', 'quiz', 'timebomb'],
       required: [true, 'Game type is required']
     },
     status: {
