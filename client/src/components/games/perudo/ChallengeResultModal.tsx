@@ -13,6 +13,12 @@ interface ChallengeResultModalProps {
   wasCorrect: boolean;
 }
 
+interface MatchingDie {
+  playerId: string;
+  diceIndex: number;
+  value: number;
+}
+
 export function ChallengeResultModal({
   isOpen,
   onClose,
@@ -26,54 +32,97 @@ export function ChallengeResultModal({
   const [countAnimation, setCountAnimation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [revealedPlayers, setRevealedPlayers] = useState<Set<string>>(new Set());
+  const [shakingDiceIndex, setShakingDiceIndex] = useState<number>(-1);
+  const [matchingDice, setMatchingDice] = useState<MatchingDie[]>([]);
 
   useEffect(() => {
     if (isOpen) {
+      console.log('🎬 [ChallengeResultModal] Opening modal', {
+        allDice: allDice.length,
+        targetValue,
+        targetQuantity
+      });
+
       // Reset animation state
       setCountAnimation(0);
       setShowResult(false);
       setRevealedPlayers(new Set());
+      setShakingDiceIndex(-1);
+
+      // Calculer tous les dés qui correspondent
+      const matches: MatchingDie[] = [];
+      allDice.forEach((player) => {
+        player.dice.forEach((value, diceIndex) => {
+          if (value === targetValue || value === 1) {
+            matches.push({
+              playerId: player.playerId,
+              diceIndex,
+              value
+            });
+          }
+        });
+      });
+      setMatchingDice(matches);
+
+      console.log('🎯 [ChallengeResultModal] Matching dice:', matches.length);
 
       // Reveal dice one player at a time
+      let revealCount = 0;
       const revealInterval = setInterval(() => {
+        revealCount++;
+        if (revealCount > allDice.length) {
+          clearInterval(revealInterval);
+          console.log('✅ [ChallengeResultModal] All dice revealed, starting shake animation');
+          // Start counting animation after all dice are revealed
+          setTimeout(() => {
+            startShakeAnimation(matches);
+          }, 500);
+          return;
+        }
+
         setRevealedPlayers((prev) => {
-          if (prev.size >= allDice.length) {
-            clearInterval(revealInterval);
-            // Start counting animation after all dice are revealed
-            setTimeout(() => {
-              animateCount();
-            }, 500);
-            return prev;
-          }
           const newSet = new Set(prev);
-          newSet.add(allDice[prev.size].playerId);
+          if (revealCount <= allDice.length) {
+            newSet.add(allDice[revealCount - 1].playerId);
+          }
           return newSet;
         });
-      }, 300);
+      }, 400);
 
       return () => {
         clearInterval(revealInterval);
       };
     }
-  }, [isOpen, allDice]);
+  }, [isOpen, allDice, targetValue]);
 
-  const animateCount = () => {
-    let current = 0;
-    const increment = actualCount / 30; // 30 frames pour atteindre le compte final
+  const startShakeAnimation = (matches: MatchingDie[]) => {
+    console.log('🎯 [ChallengeResultModal] Starting shake animation for', matches.length, 'dice');
 
-    const interval = setInterval(() => {
-      current += increment;
-      if (current >= actualCount) {
-        setCountAnimation(actualCount);
-        clearInterval(interval);
-        // Show result after counting
+    if (matches.length === 0) {
+      console.log('⚠️ [ChallengeResultModal] No matching dice, showing result immediately');
+      setShowResult(true);
+      return;
+    }
+
+    let currentIndex = 0;
+
+    const shakeInterval = setInterval(() => {
+      if (currentIndex >= matches.length) {
+        console.log('✅ [ChallengeResultModal] Shake animation complete');
+        clearInterval(shakeInterval);
+        setShakingDiceIndex(-1);
+        // Show result after all dice have shaken
         setTimeout(() => {
           setShowResult(true);
         }, 500);
-      } else {
-        setCountAnimation(Math.floor(current));
+        return;
       }
-    }, 30);
+
+      console.log('🎲 [ChallengeResultModal] Shaking die', currentIndex + 1, 'of', matches.length);
+      setShakingDiceIndex(currentIndex);
+      setCountAnimation(currentIndex + 1);
+      currentIndex++;
+    }, 600); // Chaque dé shake pendant 600ms
   };
 
   if (!isOpen) return null;
@@ -108,7 +157,7 @@ export function ChallengeResultModal({
 
           {/* All players' dice */}
           <div className="space-y-4 mb-6">
-            {allDice.map((player, index) => (
+            {allDice.map((player) => (
               <motion.div
                 key={player.playerId}
                 initial={{ x: -50, opacity: 0 }}
@@ -121,13 +170,61 @@ export function ChallengeResultModal({
                   {revealedPlayers.has(player.playerId) ? (
                     player.dice.map((value, diceIndex) => {
                       const matches = value === targetValue || value === 1;
+
+                      // Trouver l'index global de ce dé dans matchingDice
+                      const globalMatchIndex = matchingDice.findIndex(
+                        m => m.playerId === player.playerId && m.diceIndex === diceIndex
+                      );
+
+                      const isCurrentlyShaking = globalMatchIndex === shakingDiceIndex;
+                      const hasShaken = globalMatchIndex !== -1 && globalMatchIndex < shakingDiceIndex;
+
                       return (
                         <motion.div
                           key={diceIndex}
                           initial={{ rotateY: 180, scale: 0 }}
-                          animate={{ rotateY: 0, scale: 1 }}
-                          transition={{ delay: diceIndex * 0.1, duration: 0.5 }}
-                          className={matches ? 'ring-2 ring-yellow-400 rounded-lg' : ''}
+                          animate={
+                            isCurrentlyShaking
+                              ? {
+                                  rotateY: [180, 0],
+                                  scale: [1, 1.3, 1.2, 1.3, 1.2],
+                                  rotate: [0, -20, 20, -15, 15, -10, 10, 0],
+                                  y: [0, -20, 0, -20, 0],
+                                  transition: {
+                                    duration: 0.8,
+                                    ease: "easeInOut",
+                                    times: [0, 0.2, 0.4, 0.6, 0.8, 1]
+                                  }
+                                }
+                              : hasShaken
+                              ? {
+                                  rotateY: 0,
+                                  scale: 1.2,
+                                  rotate: 0,
+                                  y: 0
+                                }
+                              : {
+                                  rotateY: 0,
+                                  scale: 1,
+                                  rotate: 0,
+                                  y: 0
+                                }
+                          }
+                          transition={
+                            isCurrentlyShaking
+                              ? { delay: diceIndex * 0.05 }
+                              : { delay: diceIndex * 0.1, duration: 0.5 }
+                          }
+                          className={
+                            matches
+                              ? hasShaken || isCurrentlyShaking
+                                ? 'ring-4 ring-yellow-400 rounded-lg shadow-lg shadow-yellow-400/50'
+                                : 'ring-2 ring-yellow-400/50 rounded-lg'
+                              : ''
+                          }
+                          style={{
+                            display: 'inline-block'
+                          }}
                         >
                           <Dice value={value} size="md" />
                         </motion.div>
@@ -148,16 +245,21 @@ export function ChallengeResultModal({
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="text-center mb-6"
+              className="text-center mb-6 bg-gray-800/60 border-2 border-amber-500/50 rounded-xl p-6"
             >
-              <p className="text-gray-400 text-xl mb-2">Nombre de dés correspondants:</p>
+              <p className="text-gray-400 text-xl mb-2">Nombre total de dés correspondants:</p>
               <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ repeat: Infinity, duration: 1 }}
-                className="text-6xl font-bold text-amber-500"
+                key={countAnimation}
+                initial={{ scale: 1.5 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', duration: 0.3 }}
+                className="text-7xl font-bold text-amber-500"
               >
                 {countAnimation}
               </motion.div>
+              <p className="text-gray-500 text-sm mt-2">
+                (incluant les jokers: 1)
+              </p>
             </motion.div>
           )}
 

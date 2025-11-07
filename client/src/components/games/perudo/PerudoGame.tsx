@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGame } from '../../../hooks/useGame';
 import { useAuthStore } from '../../../stores/authStore';
 import { socketService } from '../../../services/socket';
 import toast from 'react-hot-toast';
 import { Player } from './Player';
 import { BidPanel } from './BidPanel';
-import { Dice } from './Dice';
 import { Button } from '../../ui/button';
 import { motion } from 'framer-motion';
-import { Dices as DiceIcon, RotateCcw } from 'lucide-react';
+import { Dices as DiceIcon } from 'lucide-react';
 import { ChallengeResultModal } from './ChallengeResultModal';
 
 interface PerudoGameProps {
@@ -25,65 +24,134 @@ interface ChallengeResultData {
   success: boolean;
 }
 
+interface HistoryEntry {
+  id: string;
+  timestamp: Date;
+  playerName: string;
+  action: 'bid' | 'challenge' | 'exact';
+  quantity?: number;
+  dieValue?: number;
+}
+
 export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
   const { user } = useAuthStore();
   const { makeBid, challenge, callExact } = useGame(gameState.roomCode);
   const [challengeResult, setChallengeResult] = useState<ChallengeResultData | null>(null);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
+  const [myDiceState, setMyDiceState] = useState<number[]>([]);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
+  // Utiliser useRef pour garder les players à jour sans recréer les listeners
+  const playersRef = useRef(gameState.players);
+
+  // Mettre à jour la ref quand les players changent
+  useEffect(() => {
+    playersRef.current = gameState.players;
+  }, [gameState.players]);
 
   const currentBid = gameState.currentBid;
   const totalDice = gameState.totalDiceCount || 0;
   const myPlayerId = user?._id;
-  const myDice = gameState.myDice || [];
 
-  // Écouter les résultats de challenge
+  // Garder les dés du joueur en mémoire
   useEffect(() => {
+    if (gameState.myDice && gameState.myDice.length > 0) {
+      console.log('🎲 [PerudoGame] Updating myDice state:', gameState.myDice);
+      setMyDiceState(gameState.myDice);
+    }
+  }, [gameState.myDice]);
+
+  const myDice = myDiceState;
+
+  // Écouter les résultats de challenge et les actions - SANS DÉPENDANCES qui changent
+  useEffect(() => {
+    const handleBidMade = (data: any) => {
+      console.log('📊 [PerudoGame] bid_made event:', data);
+      const player = playersRef.current.find((p: any) => p.userId === data.playerId);
+      if (player) {
+        setHistory(prev => [{
+          id: Date.now().toString() + Math.random(),
+          timestamp: new Date(),
+          playerName: player.username,
+          action: 'bid',
+          quantity: data.bid.quantity,
+          dieValue: data.bid.dieValue
+        }, ...prev].slice(0, 10)); // Garder seulement les 10 derniers
+      }
+    };
+
     const handleChallengeResolved = (data: any) => {
-      console.log('🎲 Challenge resolved:', data);
-      setChallengeResult({
-        allDice: data.allDice,
-        bidQuantity: data.bidQuantity,
-        bidValue: data.bidValue,
-        actualCount: data.actualCount,
-        loserName: data.loserName,
-        success: data.success
-      });
-      setShowChallengeModal(true);
+      console.log('🎲 [PerudoGame] challenge_resolved event:', data);
+      const challenger = playersRef.current.find((p: any) => p.userId === data.challenger);
+      if (challenger) {
+        setHistory(prev => [{
+          id: Date.now().toString() + Math.random(),
+          timestamp: new Date(),
+          playerName: challenger.username,
+          action: 'challenge'
+        }, ...prev].slice(0, 10));
+      }
+
+      if (data.allDice && data.allDice.length > 0) {
+        setChallengeResult({
+          allDice: data.allDice,
+          bidQuantity: data.bidQuantity,
+          bidValue: data.bidValue,
+          actualCount: data.actualCount,
+          loserName: data.loserName,
+          success: data.success
+        });
+        setShowChallengeModal(true);
+      } else {
+        console.error('❌ [PerudoGame] allDice is missing in challenge_resolved:', data);
+      }
     };
 
     const handleExactResolved = (data: any) => {
-      console.log('🎯 Exact resolved:', data);
-      setChallengeResult({
-        allDice: data.allDice,
-        bidQuantity: data.bidQuantity,
-        bidValue: data.bidValue,
-        actualCount: data.actualCount,
-        loserName: data.loserName,
-        success: data.success
-      });
-      setShowChallengeModal(true);
+      console.log('🎯 [PerudoGame] exact_resolved event:', data);
+      const player = playersRef.current.find((p: any) => p.userId === data.player);
+      if (player) {
+        setHistory(prev => [{
+          id: Date.now().toString() + Math.random(),
+          timestamp: new Date(),
+          playerName: player.username,
+          action: 'exact'
+        }, ...prev].slice(0, 10));
+      }
+
+      if (data.allDice && data.allDice.length > 0) {
+        setChallengeResult({
+          allDice: data.allDice,
+          bidQuantity: data.bidQuantity,
+          bidValue: data.bidValue,
+          actualCount: data.actualCount,
+          loserName: data.loserName,
+          success: data.success
+        });
+        setShowChallengeModal(true);
+      } else {
+        console.error('❌ [PerudoGame] allDice is missing in exact_resolved:', data);
+      }
     };
 
+    console.log('🎧 [PerudoGame] Setting up event listeners ONCE for bid_made, challenge_resolved, exact_resolved');
+    socketService.on('bid_made', handleBidMade);
     socketService.on('challenge_resolved', handleChallengeResolved);
     socketService.on('exact_resolved', handleExactResolved);
 
-    return () => {
-      socketService.off('challenge_resolved', handleChallengeResolved);
-      socketService.off('exact_resolved', handleExactResolved);
-    };
-  }, []);
+    // NE PAS nettoyer - les listeners doivent rester actifs
+    // return () => {
+    //   console.log('🧹 [PerudoGame] Cleaning up event listeners');
+    //   socketService.off('bid_made', handleBidMade);
+    //   socketService.off('challenge_resolved', handleChallengeResolved);
+    //   socketService.off('exact_resolved', handleExactResolved);
+    // };
+  }, []); // Tableau vide = setup UNE SEULE FOIS
 
   // Calculer la quantité minimale pour une enchère valide
   const getMinQuantity = () => {
     if (!currentBid) return 1;
     return currentBid.quantity;
-  };
-
-  const getMinDieValue = (quantity: number) => {
-    if (!currentBid) return 1;
-    if (quantity > currentBid.quantity) return 1;
-    if (quantity === currentBid.quantity) return currentBid.dieValue + 1;
-    return 1;
   };
 
   const handleBid = (quantity: number, dieValue: number) => {
@@ -280,8 +348,63 @@ export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
           )}
         </div>
 
-        {/* Sidebar - Règles */}
-        <div className="col-span-12 lg:col-span-3">
+        {/* Sidebar - Historique et Règles */}
+        <div className="col-span-12 lg:col-span-3 space-y-4">
+          {/* Historique des coups */}
+          <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
+            <h4 className="text-white font-bold mb-3 flex items-center gap-2">
+              <span>📜</span> Historique
+            </h4>
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {history.length === 0 ? (
+                <p className="text-sm text-gray-500 italic">Aucune action pour l'instant</p>
+              ) : (
+                history.map((entry) => (
+                  <motion.div
+                    key={entry.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="text-sm p-2 bg-gray-900/50 rounded border border-gray-700"
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1">
+                        <span className="font-semibold text-white">{entry.playerName}</span>
+                        {entry.action === 'bid' && (
+                          <span className="text-gray-400">
+                            {' '}parie{' '}
+                            <span className="text-purple-400 font-bold">
+                              {entry.quantity} × {entry.dieValue}
+                            </span>
+                          </span>
+                        )}
+                        {entry.action === 'challenge' && (
+                          <span className="text-red-400 font-bold"> Dudo!</span>
+                        )}
+                        {entry.action === 'exact' && (
+                          <span className="text-amber-400 font-bold"> Calza!</span>
+                        )}
+                      </div>
+                      <span className="text-xs text-gray-500 whitespace-nowrap">
+                        {new Date(entry.timestamp).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </motion.div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Total de dés en jeu */}
+          <div className="text-center p-3 bg-gray-800/60 border border-gray-700 rounded-lg">
+            <p className="text-gray-400">
+              Total de dés en jeu: <span className="font-bold text-xl text-white">{totalDice}</span>
+            </p>
+          </div>
+
+          {/* Règles rapides */}
           <div className="bg-gray-800/40 border border-gray-700 rounded-lg p-4">
             <h4 className="text-white mb-2">Règles rapides</h4>
             <ul className="text-sm text-gray-400 space-y-1">
@@ -293,13 +416,6 @@ export default function PerudoGame({ gameState, isMyTurn }: PerudoGameProps) {
               <li>• Le perdant du challenge perd un dé</li>
               <li>• Le dernier joueur avec des dés gagne!</li>
             </ul>
-          </div>
-
-          {/* Total de dés en jeu */}
-          <div className="mt-4 text-center p-3 bg-gray-800/60 border border-gray-700 rounded-lg">
-            <p className="text-gray-400">
-              Total de dés en jeu: <span className="font-bold text-xl text-white">{totalDice}</span>
-            </p>
           </div>
         </div>
       </div>

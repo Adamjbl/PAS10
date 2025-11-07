@@ -14,7 +14,14 @@
       "Read(//c/Users/Adam/Documents/GitHub/**)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(pgrep:*)",
+      "Bash(brew services:*)",
+      "Bash(brew tap:*)",
+      "Bash(brew install:*)",
+      "Bash(npm start)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill -9)"
     ],
     "deny": [],
     "ask": []

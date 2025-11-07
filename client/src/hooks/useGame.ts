@@ -215,42 +215,37 @@ export const useGame = (roomCode: string) => {
       }
     };
 
-    // Événements spécifiques Perudo
-    const handleRoundStarted = (data: { roundNumber: number; currentTurn: string }) => {
-      toast(`Round ${data.roundNumber} commence!`);
-    };
+    // Événements spécifiques Perudo - DÉSACTIVÉS pour permettre à PerudoGame de les gérer
+    // const handleRoundStarted = (data: { roundNumber: number; currentTurn: string }) => {
+    //   console.log('🎮 [useGame] round_started:', data);
+    //   toast(`Round ${data.roundNumber} commence!`);
+    // };
 
-    const handleBidMade = (data: { playerId: string; bid: any; nextPlayer: string }) => {
-      const player = gameState?.players.find(p => p.userId === data.playerId);
-      if (player) {
-        toast(`${player.username} enchérit: ${data.bid.quantity} × 🎲${data.bid.dieValue}`);
-      }
-    };
+    // const handleBidMade = (data: { playerId: string; bid: any; nextPlayer: string }) => {
+    //   console.log('🎮 [useGame] bid_made:', data);
+    //   // Ne pas afficher de toast ici, laissons PerudoGame gérer l'affichage
+    // };
 
-    const handleChallengeResolved = (data: {
-      challenger: string;
-      bidQuantity: number;
-      actualCount: number;
-      loser: string;
-      success: boolean;
-    }) => {
-      const message = data.success
-        ? `Défi réussi! Il y avait ${data.actualCount} dés (enchère: ${data.bidQuantity})`
-        : `Défi échoué! Il y avait ${data.actualCount} dés (enchère: ${data.bidQuantity})`;
-      toast(message, { icon: data.success ? '✅' : '❌' });
-    };
+    // const handleChallengeResolved = (data: {
+    //   challenger: string;
+    //   bidQuantity: number;
+    //   actualCount: number;
+    //   loser: string;
+    //   success: boolean;
+    // }) => {
+    //   console.log('🎮 [useGame] challenge_resolved:', data);
+    //   // Ne pas afficher de toast ici, laissons PerudoGame gérer l'affichage
+    // };
 
-    const handleExactResolved = (data: {
-      player: string;
-      bidQuantity: number;
-      actualCount: number;
-      success: boolean;
-    }) => {
-      const message = data.success
-        ? `Exact réussi! Il y avait exactement ${data.actualCount} dés!`
-        : `Exact échoué! Il y avait ${data.actualCount} dés (enchère: ${data.bidQuantity})`;
-      toast(message, { icon: data.success ? '🎯' : '❌' });
-    };
+    // const handleExactResolved = (data: {
+    //   player: string;
+    //   bidQuantity: number;
+    //   actualCount: number;
+    //   success: boolean;
+    // }) => {
+    //   console.log('🎮 [useGame] exact_resolved:', data);
+    //   // Ne pas afficher de toast ici, laissons PerudoGame gérer l'affichage
+    // };
 
     // Chat du jeu
     const handleChatMessage = (_data: {
@@ -276,11 +271,11 @@ export const useGame = (roomCode: string) => {
     socketService.on('game:player_eliminated', handlePlayerEliminated);
     socketService.on('game:state', handleGameState);
 
-    // Événements Perudo
-    socketService.on('round_started', handleRoundStarted);
-    socketService.on('bid_made', handleBidMade);
-    socketService.on('challenge_resolved', handleChallengeResolved);
-    socketService.on('exact_resolved', handleExactResolved);
+    // Événements Perudo - DÉSACTIVÉS pour permettre à PerudoGame de les gérer
+    // socketService.on('round_started', handleRoundStarted);
+    // socketService.on('bid_made', handleBidMade);
+    // socketService.on('challenge_resolved', handleChallengeResolved);
+    // socketService.on('exact_resolved', handleExactResolved);
 
     // Chat
     socketService.on('game:chat_message', handleChatMessage);

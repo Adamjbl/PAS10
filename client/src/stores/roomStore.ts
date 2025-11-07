@@ -35,7 +35,7 @@ interface RoomState {
 
   // Actions
   setRooms: (rooms: Room[]) => void;
-  setCurrentRoom: (room: Room | null) => void;
+  setCurrentRoom: (room: Room | null | ((prev: Room | null) => Room | null)) => void;
   addRoom: (room: Room) => void;
   updateRoom: (roomId: string, updates: Partial<Room>) => void;
   removeRoom: (roomId: string) => void;

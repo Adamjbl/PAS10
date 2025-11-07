@@ -77,7 +77,7 @@ export const useRoom = (roomCode?: string) => {
       toast.success(`${data.player.username} a rejoint le salon`);
 
       // Mettre à jour la liste des joueurs
-      setCurrentRoom((prev) => {
+      setCurrentRoom((prev: any) => {
         console.log('🔍 [handlePlayerJoined] prev state:', prev);
 
         if (!prev) {
@@ -137,7 +137,7 @@ export const useRoom = (roomCode?: string) => {
       toast(`${data.username} a quitté le salon`, { icon: '👋' });
 
       // Mettre à jour la liste des joueurs
-      setCurrentRoom((prev) => {
+      setCurrentRoom((prev: any) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -152,7 +152,7 @@ export const useRoom = (roomCode?: string) => {
       toast(`${data.username} s'est déconnecté`, { icon: '⚠️' });
 
       // Mettre à jour le statut du joueur
-      setCurrentRoom((prev) => {
+      setCurrentRoom((prev: any) => {
         if (!prev) return prev;
         return {
           ...prev,
@@ -171,7 +171,7 @@ export const useRoom = (roomCode?: string) => {
       toast.error(`${data.username} a été retiré du salon (timeout)`);
 
       // Mettre à jour la liste des joueurs
-      setCurrentRoom((prev) => {
+      setCurrentRoom((prev: any) => {
         if (!prev) return prev;
         return {
           ...prev,
